@@ -89,6 +89,15 @@
     {% endfor %}
     </div>
   {% endif %}
+  {% if posts_media2 %}
+    <div class="row">
+    {% for p in posts_media2 %}
+      <div class="column">
+        {% include '_minipost.html' %}
+      </div>
+    {% endfor %}
+    </div>
+  {% endif %}
 {% endif %}
 
 
