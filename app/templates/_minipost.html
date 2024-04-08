@@ -1,0 +1,33 @@
+<style>
+    #card-body:hover {
+        transform: scale(1.2);
+        position: relative;
+        z-index: 1;
+    }
+    
+    #card-body{
+        transition: transform .25s;
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+</style>
+<div class="card bg-dark text-white" style="width: 300px; height: 250px;" id="card-body">
+    {% if p.post_pic %}
+    <img src=" {{ url_for('static', filename='images/' + p.post_pic)}}" class="card-img" style="width: 300px; height: 250px;">
+    {% else %} 
+    <img src=" {{ url_for('static', filename='images/default-post-pic1.jpg')}}" class="card-img" style="width: 300px; height: 250px;">
+    {% endif %}
+    <div class="card-img-overlay" style="background-color: rgba(0, 0, 0, 0.3)">
+        <div class="d-flex flex-column justify-content-end card-body h-100 p-0 m-0">
+            <p>{% if p.news %}News {% endif %}
+                {% if p.media %} Media {% endif %}
+                {% if p.showbiz %} Showbiz {% endif %}
+                {% if p.sports %} Sports {% endif %}
+                {% if p.viral %} Viral{% endif %} </p>
+                <a href="{{url_for('post', id=p.id)}}" class="stretched-link" style="color: white; text-decoration: none; ">
+                    <b>{{ p.title }} </b></a>
+            <p> - {{ moment(p.timestamp).format('LLL') }} </p>
+           
+        </div>
+    </div>
+</div>

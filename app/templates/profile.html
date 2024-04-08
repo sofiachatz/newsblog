@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card w-75">
+    <div class="card-body">
+      <p class="card-text">
+        <div class="container">
+            <div class="row">
+                <div class="col-4">
+                    {% if user.profile_pic %}
+                        <img src=" {{ url_for('static', filename='images/' + current_user.profile_pic)}}" class="mx-auto d-block" alt="" style="width: 300px; height: 300px; border-radius: 12px;">
+                    {% else %}
+                        <img src=" {{ url_for('static', filename='images/default-profile-icon.jpg')}}" class="mx-auto d-block" alt="" style="width: 300px; height: 300px; border-radius: 12px;">
+                    {% endif %}
+                    <br>
+                    
+                </div>
+                <div class="col-sm-6 col-md-8">
+                    <div class="row">
+                        <div class="col">
+                            <h4><b>{{ user.username }}</b></h4> 
+                        </div>
+                        {% if user == current_user %}
+                        <div class="col">
+                            <div class="dropdown show">
+                            <button class="btn btn-secondary float-end" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="line-height:0; font-size: xx-large; background-color: white; border-color: white; color: grey;">
+                                ...
+                            </button>
+                            <div class="dropdown-menu" aria-labelledby="dropdownMenuLink">
+                                <a class="dropdown-item" href="{{ url_for('edit_profile') }}">Edit Profile</a>
+                                <a class="dropdown-item" href="{{ url_for('delete_profile_picture') }}">Delete Profile Picture</a>
+                            </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% if user.last_seen %}<p><b>Last seen:</b> {{ moment(user.last_seen).fromNow() }}</p>{% endif %}</p>
+                    <p><b>Posts:</b> {{ num_posts }}</p>
+                    {% if user.about_me %}
+                        <div class="mh-100"><p><b>About me:</b> {{ user.about_me }}</p></div>  
+                    {% endif %} 
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<br>
+{% if user == current_user %}
+    <p><a href="{{ url_for('create_post') }}" class="btn btn-primary btn-lg">New Post</a></p>
+{% endif %} 
+<br>
+{% for post in posts %}
+        {% include '_post.html' %}
+{% endfor %}
+
+<nav aria-label="Post navigation">
+    <ul class="pagination">
+        <li class="page-item{% if not prev_url %} disabled{% endif %}">
+            <a class="page-link" href="{{ prev_url }}">
+                <span aria-hidden="true">&laquo;</span> Newer
+            </a>
+        </li>
+        <li class="page-item{% if not next_url %} disabled{% endif %}">
+            <a class="page-link" href="{{ next_url }}">
+                Older <span aria-hidden="true">&raquo;</span>
+            </a>
+        </li>
+    </ul>
+</nav>
+
+
+
+{% endblock %}
+

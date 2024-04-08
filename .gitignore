@@ -1,0 +1,11 @@
+venv
+.env
+*.json
+*.db
+newsblog.py
+config.py
+node_modules/
+migrations/
+logs/
+images/
+__pycache__/

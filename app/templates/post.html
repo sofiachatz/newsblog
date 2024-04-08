@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    #box {
+    /* max-width: 75%;
+    height: auto; */
+    overflow-wrap: break-word;
+    }
+
+    /* Float four columns side by side */
+.column {
+  float: left;
+  width: 25%;
+  padding: 0 10px;
+}
+
+/* Remove extra left and right margins, due to padding in columns */
+.row {margin: 0 -5px;}
+
+/* Clear floats after the columns */
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+
+
+/* Responsive columns - one column layout (vertical) on small screens */
+@media screen and (max-width: 600px) {
+  .column {
+    width: 100%;
+    display: block;
+    margin-bottom: 20px;
+  }
+}
+</style>
+
+<div class="row">
+    <div class="col-9">
+        <strong class="d-inline-block mb-2 text-primary" style="font-size: large;">
+            {% if post.news %}News {% endif %}
+            {% if post.media %} Media {% endif %}
+            {% if post.showbiz %} Showbiz {% endif %}
+            {% if post.sports %} Sports {% endif %}
+            {% if post.viral %} Viral{% endif %}
+        </strong>
+    </div>
+    {% if post.author == current_user %}
+    <div class="col">
+    <div class="dropdown show">
+      <button class="btn btn-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="line-height:0; font-size: x-large; background-color: white; border-color: white; color: grey;">
+        ...
+      </button>
+      <div class="dropdown-menu" aria-labelledby="dropdownMenuLink">
+        <a class="dropdown-item" href="{{ url_for('edit_post', id=post.id) }}">Edit Post</a>
+        <a class="dropdown-item" href="{{ url_for('delete_image', id=post.id) }}">Delete Image</a>
+        <a class="dropdown-item" href="{{ url_for('delete_post', id=post.id) }}">Delete Post</a>
+      </div>
+    </div>
+    </div>
+    {% endif %}
+</div>
+<h1 id="box"> {{ post.title }}</h1>
+<div class="mb-1 text-muted">
+    <p>Written by <a href="{{ url_for('profile', username=post.author.username) }}">
+    {{ post.author.username }} </a> - {{ moment(post.timestamp).format('LLL') }} </p>
+</div>
+<hr>
+<br>
+{% if post.post_pic %}
+<img src=" {{ url_for('static', filename='images/' + post.post_pic)}}" width="600" height="400">
+<br>
+{% endif %}  
+<br> 
+<h5>{{ post.body }}</h5>
+<br>
+
+{% if post.media==1 %}
+  <hr>
+  {% if posts_media1 %}
+    <h3>More from: <strong class="d-inline-block mb-2 text-primary" style="font-size: x-large;"> Media</strong></h3>
+    <div class="row">
+    {% for p in posts_media1 %}
+      <div class="column">
+        {% include '_minipost.html' %}
+      </div>
+    {% endfor %}
+    </div>
+  {% endif %}
+{% endif %}
+
+
+{% endblock %}
