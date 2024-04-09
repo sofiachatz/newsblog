@@ -320,3 +320,69 @@ def reset_password(token):
         return redirect(url_for('login'))
     return render_template('reset_password.html', form=form)
 
+
+@app.route('/media')
+def media():
+    page = request.args.get('page', 1, type=int)
+    query = sa.select(Post).where(Post.media==1).order_by(Post.timestamp.desc())
+    posts = db.paginate(query, page=page,
+                        per_page=app.config['POSTS_PER_PAGE'], error_out=False)
+    next_url = url_for('media', page=posts.next_num) \
+        if posts.has_next else None
+    prev_url = url_for('media', page=posts.prev_num) \
+        if posts.has_prev else None
+    return render_template("category.html", title='Media', category="Media", posts=posts.items, next_url=next_url, prev_url=prev_url)
+
+
+@app.route('/news')
+def news():
+    page = request.args.get('page', 1, type=int)
+    query = sa.select(Post).where(Post.news==1).order_by(Post.timestamp.desc())
+    posts = db.paginate(query, page=page,
+                        per_page=app.config['POSTS_PER_PAGE'], error_out=False)
+    next_url = url_for('news', page=posts.next_num) \
+        if posts.has_next else None
+    prev_url = url_for('news', page=posts.prev_num) \
+        if posts.has_prev else None
+    return render_template("category.html", title='News', category="News", posts=posts.items, next_url=next_url, prev_url=prev_url)
+
+
+@app.route('/showbiz')
+def showbiz():
+    page = request.args.get('page', 1, type=int)
+    query = sa.select(Post).where(Post.showbiz==1).order_by(Post.timestamp.desc())
+    posts = db.paginate(query, page=page,
+                        per_page=app.config['POSTS_PER_PAGE'], error_out=False)
+    next_url = url_for('showbiz', page=posts.next_num) \
+        if posts.has_next else None
+    prev_url = url_for('showbiz', page=posts.prev_num) \
+        if posts.has_prev else None
+    return render_template("category.html", title='Showbiz', category="Showbiz", posts=posts.items, next_url=next_url, prev_url=prev_url)
+
+
+@app.route('/sports')
+def sports():
+    page = request.args.get('page', 1, type=int)
+    query = sa.select(Post).where(Post.sports==1).order_by(Post.timestamp.desc())
+    posts = db.paginate(query, page=page,
+                        per_page=app.config['POSTS_PER_PAGE'], error_out=False)
+    next_url = url_for('sports', page=posts.next_num) \
+        if posts.has_next else None
+    prev_url = url_for('sports', page=posts.prev_num) \
+        if posts.has_prev else None
+    return render_template("category.html", title='Sports', category="Sports", posts=posts.items, next_url=next_url, prev_url=prev_url)
+
+
+@app.route('/viral')
+def viral():
+    page = request.args.get('page', 1, type=int)
+    query = sa.select(Post).where(Post.viral==1).order_by(Post.timestamp.desc())
+    posts = db.paginate(query, page=page,
+                        per_page=app.config['POSTS_PER_PAGE'], error_out=False)
+    next_url = url_for('viral', page=posts.next_num) \
+        if posts.has_next else None
+    prev_url = url_for('viral', page=posts.prev_num) \
+        if posts.has_prev else None
+    return render_template("category.html", title='Viral', category="Viral", posts=posts.items, next_url=next_url, prev_url=prev_url)
+
+

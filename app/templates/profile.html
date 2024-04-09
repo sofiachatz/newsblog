@@ -53,6 +53,7 @@
         {% include '_post.html' %}
 {% endfor %}
 
+{% if posts %}
 <nav aria-label="Post navigation">
     <ul class="pagination">
         <li class="page-item{% if not prev_url %} disabled{% endif %}">
@@ -67,7 +68,7 @@
         </li>
     </ul>
 </nav>
-
+{% endif %}
 
 
 {% endblock %}
