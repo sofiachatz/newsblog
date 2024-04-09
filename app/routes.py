@@ -180,7 +180,21 @@ def post(id):
     query = sa.select(Post).where((Post.media==1)&(Post.id!=post.id)).order_by(Post.timestamp.desc())
     posts_media1 = db.session.scalars(query).all()[:4]
     posts_media2 = db.session.scalars(query).all()[5:8]
-    return render_template('post.html', post=post, posts_media1=posts_media1, posts_media2=posts_media2)
+    query = sa.select(Post).where((Post.news==1)&(Post.id!=post.id)).order_by(Post.timestamp.desc())
+    posts_news1 = db.session.scalars(query).all()[:4]
+    posts_news2 = db.session.scalars(query).all()[5:8]
+    query = sa.select(Post).where((Post.sports==1)&(Post.id!=post.id)).order_by(Post.timestamp.desc())
+    posts_sports1 = db.session.scalars(query).all()[:4]
+    posts_sports2 = db.session.scalars(query).all()[5:8]
+    query = sa.select(Post).where((Post.showbiz==1)&(Post.id!=post.id)).order_by(Post.timestamp.desc())
+    posts_showbiz1 = db.session.scalars(query).all()[:4]
+    posts_showbiz2 = db.session.scalars(query).all()[5:8]
+    query = sa.select(Post).where((Post.viral==1)&(Post.id!=post.id)).order_by(Post.timestamp.desc())
+    posts_viral1 = db.session.scalars(query).all()[:4]
+    posts_viral2 = db.session.scalars(query).all()[5:8]
+    return render_template('post.html', post=post, posts_media1=posts_media1, posts_media2=posts_media2, posts_news1=posts_news1, posts_news2=posts_news2, 
+                           posts_sports1=posts_sports1, posts_sports2=posts_sports2, posts_showbiz1=posts_showbiz1, posts_showbiz2=posts_showbiz2,
+                           posts_viral1=posts_viral1, posts_viral2=posts_viral2)
 
 
 @app.route('/edit_post/<id>', methods=['GET', 'POST'])

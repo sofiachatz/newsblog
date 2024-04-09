@@ -78,8 +78,9 @@
 <br>
 
 {% if post.media==1 %}
-  <hr>
+  
   {% if posts_media1 %}
+    <hr>
     <h3>More from: <strong class="d-inline-block mb-2 text-primary" style="font-size: x-large;"> Media</strong></h3>
     <div class="row">
     {% for p in posts_media1 %}
@@ -100,5 +101,102 @@
   {% endif %}
 {% endif %}
 
+{% if post.news==1 %}
+  
+  {% if posts_news1 %}
+    <hr>
+    <h3>More from: <strong class="d-inline-block mb-2 text-primary" style="font-size: x-large;"> News</strong></h3>
+    <div class="row">
+    {% for p in posts_news1 %}
+      <div class="column">
+        {% include '_minipost.html' %}
+      </div>
+    {% endfor %}
+    </div>
+  {% endif %}
+  {% if posts_news2 %}
+    <div class="row">
+    {% for p in posts_news2 %}
+      <div class="column">
+        {% include '_minipost.html' %}
+      </div>
+    {% endfor %}
+    </div>
+  {% endif %}
+{% endif %}
+
+{% if post.sports==1 %}
+  
+  {% if posts_sports1 %}
+    <hr>
+    <h3>More from: <strong class="d-inline-block mb-2 text-primary" style="font-size: x-large;"> Sports</strong></h3>
+    <div class="row">
+    {% for p in posts_sports1 %}
+      <div class="column">
+        {% include '_minipost.html' %}
+      </div>
+    {% endfor %}
+    </div>
+  {% endif %}
+  {% if posts_sports2 %}
+    <div class="row">
+    {% for p in posts_sports2 %}
+      <div class="column">
+        {% include '_minipost.html' %}
+      </div>
+    {% endfor %}
+    </div>
+  {% endif %}
+{% endif %}
+
+
+{% if post.showbiz==1 %}
+  
+  {% if posts_showbiz1 %}
+    <hr>
+    <h3>More from: <strong class="d-inline-block mb-2 text-primary" style="font-size: x-large;"> Showbiz</strong></h3>
+    <div class="row">
+    {% for p in posts_showbiz1 %}
+      <div class="column">
+        {% include '_minipost.html' %}
+      </div>
+    {% endfor %}
+    </div>
+  {% endif %}
+  {% if posts_showbiz2 %}
+    <div class="row">
+    {% for p in posts_showbiz2 %}
+      <div class="column">
+        {% include '_minipost.html' %}
+      </div>
+    {% endfor %}
+    </div>
+  {% endif %}
+{% endif %}
+
+
+{% if post.viral==1 %}
+  
+  {% if posts_viral1 %}
+    <hr>
+    <h3>More from: <strong class="d-inline-block mb-2 text-primary" style="font-size: x-large;"> Viral</strong></h3>
+    <div class="row">
+    {% for p in posts_viral1 %}
+      <div class="column">
+        {% include '_minipost.html' %}
+      </div>
+    {% endfor %}
+    </div>
+  {% endif %}
+  {% if posts_viral2 %}
+    <div class="row">
+    {% for p in posts_viral2 %}
+      <div class="column">
+        {% include '_minipost.html' %}
+      </div>
+    {% endfor %}
+    </div>
+  {% endif %}
+{% endif %}
 
 {% endblock %}
