@@ -105,34 +105,26 @@ def edit_profile():
     if form.validate_on_submit():
         current_user.username = form.username.data
         current_user.about_me = form.about_me.data
-        pic = form.profile_pic.data
-        if pic:
-            pic_name = str(uuid.uuid1()) + "_" + secure_filename(pic.filename)
-            pic.save(os.path.join(app.config['UPLOAD_FOLDER'], pic_name))
-            current_user.profile_pic = pic_name
+        if form.checkbox.data == True:
+            current_user.profile_pic = None
             db.session.commit()
-            flash('Your changes have been saved.')
-            return redirect(url_for('profile', username=current_user.username))
         else:
-            db.session.commit()
-            flash('Your changes have been saved.')
-            return redirect(url_for('profile', username=current_user.username))
+            pic = form.profile_pic.data
+            if pic:
+                pic_name = str(uuid.uuid1()) + "_" + secure_filename(pic.filename)
+                pic.save(os.path.join(app.config['UPLOAD_FOLDER'], pic_name))
+                current_user.profile_pic = pic_name
+                db.session.commit()
+            else:
+                db.session.commit()
+        flash('Your changes have been saved.')
+        return redirect(url_for('profile', username=current_user.username))
     elif request.method == 'GET':
         form.username.data = current_user.username
         form.about_me.data = current_user.about_me
         form.profile_pic.data  = current_user.profile_pic
     return render_template('edit_profile.html', title='Edit Profile',
                            form=form)
-
-
-@app.route('/delete_profile_picture', methods=['GET','POST'])
-@login_required
-def delete_profile_picture():
-    current_user.profile_pic = None
-    db.session.commit()
-    flash('Your profile picture was deleted successfully.')
-    return redirect(url_for('profile', username=current_user.username))
-    
 
 
 
@@ -224,18 +216,20 @@ def edit_post(id):
                     post.sports = 1
                 if c == 'VIRAL':
                     post.viral = 1
-            pic = form.post_pic.data
-            if pic:
-                pic_name = str(uuid.uuid1()) + "_" + secure_filename(pic.filename)
-                pic.save(os.path.join(app.config['UPLOAD_FOLDER'], pic_name))
-                post.post_pic = pic_name
+            if form.checkbox.data == True:
+                post.post_pic = None
                 db.session.commit()
-                flash('Your changes have been saved.')
-                return redirect(url_for('post', id=post.id))
             else:
-                db.session.commit()
-                flash('Your changes have been saved.')
-                return redirect(url_for('post', id=post.id))
+                pic = form.post_pic.data
+                if pic:
+                    pic_name = str(uuid.uuid1()) + "_" + secure_filename(pic.filename)
+                    pic.save(os.path.join(app.config['UPLOAD_FOLDER'], pic_name))
+                    post.post_pic = pic_name
+                    db.session.commit()
+                else:
+                    db.session.commit()
+            flash('Your changes have been saved.')
+            return redirect(url_for('post', id=post.id))
         elif request.method == 'GET':
             form.title.data = post.title
             form.body.data = post.body
@@ -255,20 +249,6 @@ def edit_post(id):
             form.post_pic.data  = post.post_pic
         return render_template('create_post.html', title='Edit Post', h='Edit Post',
                             form=form, id=post.id)
-    else:
-        error="You cannot edit the post of another user!"
-        return render_template('error.html', error=error)
-
-
-@app.route('/delete_image/<id>', methods=['GET','POST'])
-@login_required
-def delete_image(id):
-    post = db.first_or_404(sa.select(Post).where(Post.id == id))
-    if post.author == current_user:
-        post.post_pic =None   
-        db.session.commit()
-        flash("Your post's image has been deleted.")
-        return redirect(url_for('post', id=post.id))
     else:
         error="You cannot edit the post of another user!"
         return render_template('error.html', error=error)

@@ -55,7 +55,6 @@
       </button>
       <div class="dropdown-menu" aria-labelledby="dropdownMenuLink">
         <a class="dropdown-item" href="{{ url_for('edit_post', id=post.id) }}">Edit Post</a>
-        <a class="dropdown-item" href="{{ url_for('delete_image', id=post.id) }}">Delete Image</a>
         <a class="dropdown-item" href="{{ url_for('delete_post', id=post.id) }}">Delete Post</a>
       </div>
     </div>
@@ -77,29 +76,7 @@
 <h5>{{ post.body }}</h5>
 <br>
 
-{% if post.media==1 %}
-  
-  {% if posts_media1 %}
-    <hr>
-    <h3>More from: <strong class="d-inline-block mb-2 text-primary" style="font-size: x-large;"> Media</strong></h3>
-    <div class="row">
-    {% for p in posts_media1 %}
-      <div class="column">
-        {% include '_minipost.html' %}
-      </div>
-    {% endfor %}
-    </div>
-  {% endif %}
-  {% if posts_media2 %}
-    <div class="row">
-    {% for p in posts_media2 %}
-      <div class="column">
-        {% include '_minipost.html' %}
-      </div>
-    {% endfor %}
-    </div>
-  {% endif %}
-{% endif %}
+
 
 {% if post.news==1 %}
   
@@ -117,6 +94,30 @@
   {% if posts_news2 %}
     <div class="row">
     {% for p in posts_news2 %}
+      <div class="column">
+        {% include '_minipost.html' %}
+      </div>
+    {% endfor %}
+    </div>
+  {% endif %}
+{% endif %}
+
+{% if post.media==1 %}
+  
+  {% if posts_media1 %}
+    <hr>
+    <h3>More from: <strong class="d-inline-block mb-2 text-primary" style="font-size: x-large;"> Media</strong></h3>
+    <div class="row">
+    {% for p in posts_media1 %}
+      <div class="column">
+        {% include '_minipost.html' %}
+      </div>
+    {% endfor %}
+    </div>
+  {% endif %}
+  {% if posts_media2 %}
+    <div class="row">
+    {% for p in posts_media2 %}
       <div class="column">
         {% include '_minipost.html' %}
       </div>

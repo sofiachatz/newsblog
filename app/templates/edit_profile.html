@@ -49,8 +49,16 @@
                 {%- endfor %}
             </div> 
             <div class="mt-3"> 
-                <div class="row" id="imagePreviews"></div> 
+                <div class="row">
+                    <div class="col-md-4 mb-3" id="imagePreviews">
+
+                    </div>
+                </div> 
             </div> 
+        </div>
+        <div class="form-check">
+            {{ form.checkbox(class='form-check-input', type="checkbox", id="CheckDefaultPic", onchange="myFunction()") }}
+            {{ form.checkbox.label(class='form-check-label') }}
         </div> 
         <br>
         {{ form.submit(class='btn btn-primary mb-3') }}
@@ -58,23 +66,29 @@
 
 
     <script> 
-        function showFiles(input) { 
-            const previewsContainer = 
-                document.getElementById('imagePreviews'); 
-                  
+        function showFiles(input) {
+            let checkBox = document.getElementById("CheckDefaultPic"); 
+            const previewsContainer = document.getElementById('imagePreviews'); 
             previewsContainer.innerHTML = ''; 
-            const files = input.files; 
-            const file = files[0]; 
-            const reader = new FileReader(); 
+            files = input.files; 
+            file = files[0]; 
+            reader = new FileReader(); 
             reader.onload = function (e) { 
-                const preview = document.createElement('div'); 
-                preview.classList.add('col-md-4', 'mb-3'); 
-                preview.innerHTML += `<span> ${file.name} </span>`;
-                previewsContainer.appendChild(preview); 
+                if (checkBox.checked == false){
+                    previewsContainer.innerHTML += `<p> ${file.name} </p>`;
+                }
             }; 
             reader.readAsDataURL(file); 
-            
         } 
+    
+        function myFunction() {
+            let checkBox = document.getElementById("CheckDefaultPic");
+            document.getElementById('imagePreviews').innerHTML = '';
+            if (checkBox.checked == false){
+                document.getElementById('imagePreviews').innerHTML += `<p> ${file.name} </p>`;
+            }
+        }
+
     </script> 
 
 {% endblock %}

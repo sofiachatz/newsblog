@@ -69,6 +69,7 @@ class EditProfileForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     about_me = TextAreaField('About me', validators=[Length(min=0, max=336)])
     profile_pic = FileField('Profile Picture')
+    checkbox = BooleanField('Use Default Picture')
     submit = SubmitField('Submit')
 
     def validate_username(self, username):
@@ -109,6 +110,7 @@ class PostForm(FlaskForm):
     body = TextAreaField('Write your article...', validators=[Length(min=0, max=7000), DataRequired()])
     lead_in = TextAreaField('Write a lead-in text to additional content... (optional)', validators=[Length(min=0, max=170)])
     post_pic = FileField('Image')
+    checkbox = BooleanField('Use Default Picture')
     submit = SubmitField('Submit')
 
             
