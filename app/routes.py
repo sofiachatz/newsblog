@@ -154,13 +154,19 @@ def create_post():
             if c == 'VIRAL':
                 post.viral = 1
         db.session.commit()
-        pic = form.post_pic.data
-        if pic:
-            pic_name = str(uuid.uuid1()) + "_" + secure_filename(pic.filename)
-            pic.save(os.path.join(app.config['UPLOAD_FOLDER'], pic_name))
-            post.post_pic = pic_name
+        if form.checkbox.data == True:
+            post.post_pic = None
             db.session.commit()
-        flash('Your post has been uploaded.')
+        else:
+            pic = form.post_pic.data
+            if pic:
+                pic_name = str(uuid.uuid1()) + "_" + secure_filename(pic.filename)
+                pic.save(os.path.join(app.config['UPLOAD_FOLDER'], pic_name))
+                post.post_pic = pic_name
+                db.session.commit()
+            else:
+                db.session.commit()
+        flash('Your changes have been saved.')
         return redirect(url_for('post', id=post.id))
     return render_template('create_post.html', title='New Post', h='New Post',
                            form=form)
