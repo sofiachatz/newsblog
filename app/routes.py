@@ -1,6 +1,6 @@
 from flask import render_template, flash, redirect, url_for
 from app import app
-from app.forms import LoginForm, RegistrationForm, EditProfileForm, PostForm, ResetPasswordRequestForm, ResetPasswordForm
+from app.forms import LoginForm, RegistrationForm, EditProfileForm, PostForm, ResetPasswordRequestForm, ResetPasswordForm, SearchForm
 from flask_login import current_user, login_user
 import sqlalchemy as sa
 from app import db
@@ -14,11 +14,16 @@ from werkzeug.utils import secure_filename
 import uuid as uuid 
 import os
 from app.email import send_password_reset_email
+from flask import g
+from elasticsearch.exceptions import ConnectionError as ElasticConnectionError
+from elasticsearch.exceptions import ConnectionTimeout as ConnectionTimeoutError
+
 
 
 
 @app.before_request
 def before_request():
+    g.search_form = SearchForm()
     if current_user.is_authenticated:
         current_user.last_seen = datetime.now(timezone.utc)
         db.session.commit()
@@ -131,46 +136,53 @@ def edit_profile():
 @app.route('/create_post', methods=['GET', 'POST'])
 @login_required
 def create_post():
-    form = PostForm()
-    if form.validate_on_submit():
-        title = form.title.data
-        body = form.body.data
-        lead_in = form.lead_in.data
-        post = Post(title=title, body=body, lead_in=lead_in, user_id=current_user.id)
-        db.session.add(post)       
-        db.session.commit()
-        query = sa.select(Post).where(Post.user_id==current_user.id).order_by(Post.id.desc())
-        post = db.session.scalars(query).first()
-        category = form.category.data
-        for c in category:
-            if c == 'NEWS':
-                post.news = 1
-            if c == 'MEDIA':
-                post.media = 1
-            if c == 'SHOWBIZ':
-                post.showbiz = 1
-            if c == 'SPORTS':
-                post.sports = 1
-            if c == 'VIRAL':
-                post.viral = 1
-        db.session.commit()
-        if form.checkbox.data == True:
-            post.post_pic = None
+    try: 
+        form = PostForm()
+        if form.validate_on_submit():
+            title = form.title.data
+            body = form.body.data
+            lead_in = form.lead_in.data
+            post = Post(title=title, body=body, lead_in=lead_in, user_id=current_user.id)
+            db.session.add(post)       
             db.session.commit()
-        else:
-            pic = form.post_pic.data
-            if pic:
-                pic_name = str(uuid.uuid1()) + "_" + secure_filename(pic.filename)
-                pic.save(os.path.join(app.config['UPLOAD_FOLDER'], pic_name))
-                post.post_pic = pic_name
+            query = sa.select(Post).where(Post.user_id==current_user.id).order_by(Post.id.desc())
+            post = db.session.scalars(query).first()
+            category = form.category.data
+            for c in category:
+                if c == 'NEWS':
+                    post.news = 1
+                if c == 'MEDIA':
+                    post.media = 1
+                if c == 'SHOWBIZ':
+                    post.showbiz = 1
+                if c == 'SPORTS':
+                    post.sports = 1
+                if c == 'VIRAL':
+                    post.viral = 1
+            db.session.commit()
+            if form.checkbox.data == True:
+                post.post_pic = None
                 db.session.commit()
             else:
-                db.session.commit()
-        flash('Your changes have been saved.')
-        return redirect(url_for('post', id=post.id))
-    return render_template('create_post.html', title='New Post', h='New Post',
-                           form=form)
-
+                pic = form.post_pic.data
+                if pic:
+                    pic_name = str(uuid.uuid1()) + "_" + secure_filename(pic.filename)
+                    pic.save(os.path.join(app.config['UPLOAD_FOLDER'], pic_name))
+                    post.post_pic = pic_name
+                    db.session.commit()
+                else:
+                    db.session.commit()
+            flash('Your changes have been saved.')
+            return redirect(url_for('post', id=post.id))
+        return render_template('create_post.html', title='New Post', h='New Post',
+                            form=form)
+    except ElasticConnectionError:
+        error="Connection error!"
+        return render_template('error.html', error=error)
+    except ConnectionTimeoutError:
+        error="Connection Timeout error!"
+        return render_template('error.html', error=error)
+        
 
 @app.route('/post/<id>')
 def post(id):
@@ -202,6 +214,7 @@ def edit_post(id):
     if post.author == current_user:
         form = PostForm()
         if form.validate_on_submit():
+            
             post.title = form.title.data
             post.body = form.body.data
             post.lead_in = form.lead_in.data
@@ -372,3 +385,19 @@ def viral():
     return render_template("category.html", title='Viral', category="Viral", posts=posts.items, next_url=next_url, prev_url=prev_url)
 
 
+@app.route('/search')
+def search():
+    if not g.search_form.validate():
+        return redirect(url_for('index'))
+    page = request.args.get('page', 1, type=int)
+    posts, total = Post.search(g.search_form.q.data, page, app.config['POSTS_PER_PAGE'])
+    if total == -1:
+        error="Connection error!"
+        return render_template('error.html', error=error)
+    else:
+        next_url = url_for('main.search', q=g.search_form.q.data, page=page + 1) \
+            if total > page * app.config['POSTS_PER_PAGE'] else None
+        prev_url = url_for('main.search', q=g.search_form.q.data, page=page - 1) \
+            if page > 1 else None
+        return render_template('search.html', title='Search', posts=posts,
+                                next_url=next_url, prev_url=prev_url, total=total, query=g.search_form.q.data)

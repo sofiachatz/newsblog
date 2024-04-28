@@ -1,16 +1,16 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectMultipleField
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectMultipleField, TextAreaField
 from wtforms.validators import ValidationError, DataRequired, Email, EqualTo
 from wtforms import widgets
 import sqlalchemy as sa
 from app import db
 from app.models import User
-from wtforms import TextAreaField, SelectMultipleField
 from wtforms.validators import Length
 from flask_login import current_user
 from flask_wtf.file import FileField
 import imghdr
 from markupsafe import Markup
+from flask import request
 
 
 
@@ -151,3 +151,15 @@ class ResetPasswordForm(FlaskForm):
         check = all([alpha,num,special])
         if check == False:
             raise ValidationError('Make sure you use at least 1 letter, 1 number and 1 special character (!@#$ etc).')
+
+
+
+class SearchForm(FlaskForm):
+    q = StringField(('Search'), validators=[DataRequired()])
+
+    def __init__(self, *args, **kwargs):
+        if 'formdata' not in kwargs:
+            kwargs['formdata'] = request.args
+        if 'meta' not in kwargs:
+            kwargs['meta'] = {'csrf': False}
+        super(SearchForm, self).__init__(*args, **kwargs)

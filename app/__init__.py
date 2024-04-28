@@ -9,7 +9,7 @@ from logging.handlers import SMTPHandler
 from logging.handlers import RotatingFileHandler
 import os
 from flask_mail import Mail
-
+from elasticsearch import Elasticsearch
 
 
 app = Flask(__name__)
@@ -24,6 +24,8 @@ mail = Mail(app)
 UPLOAD_FOLDER = 'app/static/images'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']]) \
+        if app.config['ELASTICSEARCH_URL'] else None
 
 if not app.debug:
     if app.config['MAIL_SERVER']:
