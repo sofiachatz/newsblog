@@ -1,10 +1,10 @@
-from flask import render_template, flash, redirect, url_for
+from flask import render_template, flash, redirect, url_for, jsonify
 from app import app
 from app.forms import LoginForm, RegistrationForm, EditProfileForm, PostForm, ResetPasswordRequestForm, ResetPasswordForm, SearchForm
 from flask_login import current_user, login_user
 import sqlalchemy as sa
 from app import db
-from app.models import User, Post
+from app.models import User, Post, Like
 from flask_login import logout_user
 from flask_login import login_required
 from flask import request
@@ -40,7 +40,7 @@ def index():
         if posts.has_next else None
     prev_url = url_for('index', page=posts.prev_num) \
         if posts.has_prev else None
-    return render_template("index.html", title='Home', posts=posts.items, next_url=next_url, prev_url=prev_url)
+    return render_template("index.html", title='Home', posts=posts.items, next_url=next_url, prev_url=prev_url, current_user=current_user)
 
 
 
@@ -99,7 +99,7 @@ def profile(username):
         if posts.has_next else None
     prev_url = url_for('profile', username=user.username, page=posts.prev_num) \
         if posts.has_prev else None
-    return render_template('profile.html', user=user, num_posts=num_posts, posts=posts.items, next_url=next_url, prev_url=prev_url)
+    return render_template('profile.html', user=user, num_posts=num_posts, posts=posts.items, next_url=next_url, prev_url=prev_url, current_user=current_user)
 
 
 
@@ -142,7 +142,7 @@ def create_post():
             title = form.title.data
             body = form.body.data
             lead_in = form.lead_in.data
-            post = Post(title=title, body=body, lead_in=lead_in, user_id=current_user.id)
+            post = Post(title=title, body=body, lead_in=lead_in, user_id=current_user.id, num_likes=0)
             db.session.add(post)       
             db.session.commit()
             query = sa.select(Post).where(Post.user_id==current_user.id).order_by(Post.id.desc())
@@ -204,7 +204,7 @@ def post(id):
     posts_viral2 = db.session.scalars(query).all()[5:8]
     return render_template('post.html', post=post, posts_media1=posts_media1, posts_media2=posts_media2, posts_news1=posts_news1, posts_news2=posts_news2, 
                            posts_sports1=posts_sports1, posts_sports2=posts_sports2, posts_showbiz1=posts_showbiz1, posts_showbiz2=posts_showbiz2,
-                           posts_viral1=posts_viral1, posts_viral2=posts_viral2)
+                           posts_viral1=posts_viral1, posts_viral2=posts_viral2, current_user=current_user)
 
 
 @app.route('/edit_post/<id>', methods=['GET', 'POST'])
@@ -330,7 +330,7 @@ def media():
         if posts.has_next else None
     prev_url = url_for('media', page=posts.prev_num) \
         if posts.has_prev else None
-    return render_template("category.html", title='Media', category="Media", posts=posts.items, next_url=next_url, prev_url=prev_url)
+    return render_template("category.html", title='Media', category="Media", posts=posts.items, next_url=next_url, prev_url=prev_url, current_user=current_user)
 
 
 @app.route('/news')
@@ -343,7 +343,7 @@ def news():
         if posts.has_next else None
     prev_url = url_for('news', page=posts.prev_num) \
         if posts.has_prev else None
-    return render_template("category.html", title='News', category="News", posts=posts.items, next_url=next_url, prev_url=prev_url)
+    return render_template("category.html", title='News', category="News", posts=posts.items, next_url=next_url, prev_url=prev_url, current_user=current_user)
 
 
 @app.route('/showbiz')
@@ -356,7 +356,7 @@ def showbiz():
         if posts.has_next else None
     prev_url = url_for('showbiz', page=posts.prev_num) \
         if posts.has_prev else None
-    return render_template("category.html", title='Showbiz', category="Showbiz", posts=posts.items, next_url=next_url, prev_url=prev_url)
+    return render_template("category.html", title='Showbiz', category="Showbiz", posts=posts.items, next_url=next_url, prev_url=prev_url, current_user=current_user)
 
 
 @app.route('/sports')
@@ -369,7 +369,7 @@ def sports():
         if posts.has_next else None
     prev_url = url_for('sports', page=posts.prev_num) \
         if posts.has_prev else None
-    return render_template("category.html", title='Sports', category="Sports", posts=posts.items, next_url=next_url, prev_url=prev_url)
+    return render_template("category.html", title='Sports', category="Sports", posts=posts.items, next_url=next_url, prev_url=prev_url, current_user=current_user)
 
 
 @app.route('/viral')
@@ -382,7 +382,7 @@ def viral():
         if posts.has_next else None
     prev_url = url_for('viral', page=posts.prev_num) \
         if posts.has_prev else None
-    return render_template("category.html", title='Viral', category="Viral", posts=posts.items, next_url=next_url, prev_url=prev_url)
+    return render_template("category.html", title='Viral', category="Viral", posts=posts.items, next_url=next_url, prev_url=prev_url, current_user=current_user)
 
 
 @app.route('/search')
@@ -400,4 +400,21 @@ def search():
         prev_url = url_for('main.search', q=g.search_form.q.data, page=page - 1) \
             if page > 1 else None
         return render_template('search.html', title='Search', posts=posts,
-                                next_url=next_url, prev_url=prev_url, total=total, query=g.search_form.q.data)
+                                next_url=next_url, prev_url=prev_url, total=total, query=g.search_form.q.data, current_user=current_user)
+
+
+@app.route('/like_post/<id>', methods=['POST'])
+@login_required
+def like_post(id):
+    post = db.first_or_404(sa.select(Post).where(Post.id == id))
+    query = sa.select(Like).where((Like.user_id==current_user.id)&(Like.post_id==post.id))
+    like = db.session.scalars(query).first()
+    if like:
+        db.session.delete(like)
+    else:
+        like = Like(user_id=current_user.id, post_id=post.id)
+        db.session.add(like)
+    db.session.commit()
+    return jsonify({"likes": len(post.likes), "liked": current_user.id in map(lambda x: x.user_id, post.likes)})
+
+    

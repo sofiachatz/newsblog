@@ -49,13 +49,31 @@
         <p class="card-text">{{post.lead_in}}</p>
         </div>
         {% endif %}
+          <div class="row">
+            <div class="col">              
+                {% if current_user.id in post.likes|map(attribute="user_id")|list %}
+                <i
+                  class="fa-solid fa-heart"
+                  id="like-button-{{post.id}}"
+                  onclick="like({{post.id}})"></i>
+                {% else %}
+                <i
+                  class="fa-regular fa-heart"
+                  id="like-button-{{post.id}}"
+                  onclick="like({{post.id}})"
+                ></i>
+                {% endif %}
+                <span id="likes-count-{{post.id}}">
+                  {{ post.likes|length }}</span>
+            </div>
+          </div>
           <a href="{{url_for('post', id=post.id)}}">Continue reading</a>
       </div>
       <div class="col-auto d-none d-lg-block">
           {% if post.post_pic %}
-              <img src=" {{ url_for('static', filename='images/' + post.post_pic)}}" class="mx-auto d-block" alt="" width="300" height="300">
+              <img src=" {{ url_for('static', filename='images/' + post.post_pic)}}" class="mx-auto d-block" alt="" width="300" height="320">
           {% else %} 
-              <img src=" {{ url_for('static', filename='images/default-post-pic1.jpg')}}" class="mx-auto d-block" alt="" width="300" height="300">
+              <img src=" {{ url_for('static', filename='images/default-post-pic1.jpg')}}" class="mx-auto d-block" alt="" width="300" height="320">
           {% endif %}
       </div>
     </div>

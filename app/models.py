@@ -80,6 +80,7 @@ class User(UserMixin, db.Model):
     last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(
         default=lambda: datetime.now(timezone.utc))
     profile_pic: so.Mapped[Optional[str]] = so.mapped_column(sa.String())
+    likes = db.relationship('Like', backref='user', passive_deletes=True)
     
 
     def __repr__(self):
@@ -125,8 +126,15 @@ class Post(SearchableMixin, db.Model):
     sports: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer())
     viral: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer())
     post_pic: so.Mapped[Optional[str]] = so.mapped_column(sa.String())
+    likes = db.relationship('Like', backref='post', passive_deletes=True)
 
 
     def __repr__(self):
         return '<Post {}>'.format(self.title)
 
+class Like(db.Model):
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id, ondelete="CASCADE"), nullable=False)
+    post_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Post.id, ondelete="CASCADE"), nullable=False)
+    timestamp: so.Mapped[datetime] = so.mapped_column(
+        index=True, default=lambda: datetime.now(timezone.utc))
