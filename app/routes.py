@@ -9,7 +9,7 @@ from flask_login import logout_user
 from flask_login import login_required
 from flask import request
 from urllib.parse import urlsplit
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from werkzeug.utils import secure_filename
 import uuid as uuid 
 import os
@@ -17,6 +17,7 @@ from app.email import send_password_reset_email
 from flask import g
 from elasticsearch.exceptions import ConnectionError as ElasticConnectionError
 from elasticsearch.exceptions import ConnectionTimeout as ConnectionTimeoutError
+from sqlalchemy import func
 
 
 
@@ -142,7 +143,7 @@ def create_post():
             title = form.title.data
             body = form.body.data
             lead_in = form.lead_in.data
-            post = Post(title=title, body=body, lead_in=lead_in, user_id=current_user.id, num_likes=0)
+            post = Post(title=title, body=body, lead_in=lead_in, user_id=current_user.id)
             db.session.add(post)       
             db.session.commit()
             query = sa.select(Post).where(Post.user_id==current_user.id).order_by(Post.id.desc())
@@ -202,9 +203,12 @@ def post(id):
     query = sa.select(Post).where((Post.viral==1)&(Post.id!=post.id)).order_by(Post.timestamp.desc())
     posts_viral1 = db.session.scalars(query).all()[:4]
     posts_viral2 = db.session.scalars(query).all()[5:8]
+    filter_after = datetime.today() - timedelta(days = 60)
+    query = sa.select(Post).join(Like).where(Post.id!=post.id).filter(Post.timestamp >= filter_after).group_by(Like.post_id).order_by(func.count(Like.post_id).desc()).order_by(Post.timestamp.desc())
+    trending = db.session.scalars(query).all()[:6]
     return render_template('post.html', post=post, posts_media1=posts_media1, posts_media2=posts_media2, posts_news1=posts_news1, posts_news2=posts_news2, 
                            posts_sports1=posts_sports1, posts_sports2=posts_sports2, posts_showbiz1=posts_showbiz1, posts_showbiz2=posts_showbiz2,
-                           posts_viral1=posts_viral1, posts_viral2=posts_viral2, current_user=current_user)
+                           posts_viral1=posts_viral1, posts_viral2=posts_viral2, current_user=current_user, trending=trending)
 
 
 @app.route('/edit_post/<id>', methods=['GET', 'POST'])

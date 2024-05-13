@@ -35,54 +35,79 @@
     margin-bottom: 20px;
   }
 }
+
+#category{
+  padding: 1mm;
+}
+
+#menu{
+  float: right;
+}
+
 </style>
 
-<div class="row">
-    <div class="col-9">
-        <strong class="d-inline-block mb-2 text-primary" style="font-size: large;">
-            {% if post.news %}News {% endif %}
-            {% if post.media %} Media {% endif %}
-            {% if post.showbiz %} Showbiz {% endif %}
-            {% if post.sports %} Sports {% endif %}
-            {% if post.viral %} Viral{% endif %}
-        </strong>
+
+<div class="row g-5">
+  <div class="col-md-8">
+    <div class="row">
+        <div class="col" id="category">
+            <strong class="d-inline-block mb-2 text-primary">
+                {% if post.news %}<a class="btn btn-primary float-end" type="button" aria-expanded="false" style="line-height:0; font-size: x-large; padding-left: 0%; padding-bottom: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('news') }}">News</a>{% endif %}
+                {% if post.media %}<a class="btn btn-primary float-end" type="button" aria-expanded="false" style="line-height:0; font-size: x-large; padding-left: 0%; padding-bottom: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('media') }}">Media</a>{% endif %}
+                {% if post.showbiz %}<a class="btn btn-primary float-end" type="button" aria-expanded="false" style="line-height:0; font-size: x-large; padding-left: 0%; padding-bottom: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('showbiz') }}">Showbiz</a>{% endif %}
+                {% if post.sports %}<a class="btn btn-primary float-end" type="button" aria-expanded="false" style="line-height:0; font-size: x-large; padding-left: 0%; padding-bottom: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('sports') }}">Sports</a>{% endif %}
+                {% if post.viral %}<a class="btn btn-primary float-end" type="button" aria-expanded="false" style="line-height:0; font-size: x-large; padding-left: 0%; padding-bottom: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('viral') }}">Viral</a>{% endif %}
+            </strong>
+        </div>
+        {% if post.author == current_user %}
+        <div class="col-md-1" id="menu">
+        <div class="dropdown show">
+          <button class="btn btn-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="line-height:0; font-size: x-large; background-color: white; border-color: white; color: grey;">
+            ...
+          </button>
+          <div class="dropdown-menu" aria-labelledby="dropdownMenuLink">
+            <a class="dropdown-item" href="{{ url_for('edit_post', id=post.id) }}">Edit Post</a>
+            <a class="dropdown-item" href="{{ url_for('delete_post', id=post.id) }}">Delete Post</a>
+          </div>
+        </div>
+        </div>
+        {% endif %}
     </div>
-    {% if post.author == current_user %}
-    <div class="col">
-    <div class="dropdown show">
-      <button class="btn btn-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="line-height:0; font-size: x-large; background-color: white; border-color: white; color: grey;">
-        ...
-      </button>
-      <div class="dropdown-menu" aria-labelledby="dropdownMenuLink">
-        <a class="dropdown-item" href="{{ url_for('edit_post', id=post.id) }}">Edit Post</a>
-        <a class="dropdown-item" href="{{ url_for('delete_post', id=post.id) }}">Delete Post</a>
+    <h1 id="box"> {{ post.title }}</h1>
+    <div class="mb-1 text-muted">
+        <p>Written by <a href="{{ url_for('profile', username=post.author.username) }}">
+        {{ post.author.username }} </a> - {{ moment(post.timestamp).format('LLL') }} </p>
+    </div>
+    <hr>
+    <br>
+    {% if post.post_pic %}
+    <img src=" {{ url_for('static', filename='images/' + post.post_pic)}}" width="600" height="400">
+    <br>
+    {% endif %}  
+    <br> 
+    <h5>{{ post.body }}</h5>
+    <br>
+  </div>
+  <div class="col-md-4">
+    <div class="position-sticky" style="top: 2rem;">
+      <div class="p-4 mb-4 bg-light rounded">
+        <h2>Trending</h2>
+        {% for p in trending %}
+          {% include '_minipost.html' %}
+        {% endfor %}
       </div>
     </div>
-    </div>
-    {% endif %}
+  </div>
 </div>
-<h1 id="box"> {{ post.title }}</h1>
-<div class="mb-1 text-muted">
-    <p>Written by <a href="{{ url_for('profile', username=post.author.username) }}">
-    {{ post.author.username }} </a> - {{ moment(post.timestamp).format('LLL') }} </p>
-</div>
-<hr>
-<br>
-{% if post.post_pic %}
-<img src=" {{ url_for('static', filename='images/' + post.post_pic)}}" width="600" height="400">
-<br>
-{% endif %}  
-<br> 
-<h5>{{ post.body }}</h5>
-<br>
-
 
 
 {% if post.news==1 %}
   
   {% if posts_news1 %}
     <hr>
-    <h3>More from: <strong class="d-inline-block mb-2 text-primary" style="font-size: x-large;"> News</strong></h3>
+    <div class="col">
+      <h3>More from: <a class="btn btn-primary" type="button" aria-expanded="false" style="line-height:0; font-size: x-large; padding-top: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('news') }}">News</a></h3>
+    </div>
     <div class="row">
     {% for p in posts_news1 %}
       <div class="column">
@@ -106,7 +131,9 @@
   
   {% if posts_media1 %}
     <hr>
-    <h3>More from: <strong class="d-inline-block mb-2 text-primary" style="font-size: x-large;"> Media</strong></h3>
+    <div class="col">
+      <h3>More from:<a class="btn btn-primary" type="button" aria-expanded="false" style="line-height:0; font-size: x-large; padding-top: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('media') }}">Media</a></h3>
+    </div>
     <div class="row">
     {% for p in posts_media1 %}
       <div class="column">
@@ -130,7 +157,9 @@
   
   {% if posts_sports1 %}
     <hr>
-    <h3>More from: <strong class="d-inline-block mb-2 text-primary" style="font-size: x-large;"> Sports</strong></h3>
+    <div class="col">
+      <h3>More from:<a class="btn btn-primary" type="button" aria-expanded="false" style="line-height:0; font-size: x-large; padding-top: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('sports') }}">Sports</a></h3>
+    </div>
     <div class="row">
     {% for p in posts_sports1 %}
       <div class="column">
@@ -155,7 +184,9 @@
   
   {% if posts_showbiz1 %}
     <hr>
-    <h3>More from: <strong class="d-inline-block mb-2 text-primary" style="font-size: x-large;"> Showbiz</strong></h3>
+    <div class="col">
+      <h3>More from:<a class="btn btn-primary" type="button" aria-expanded="false" style="line-height:0; font-size: x-large; padding-top: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('showbiz') }}">Showbiz</a></h3>
+    </div>
     <div class="row">
     {% for p in posts_showbiz1 %}
       <div class="column">
@@ -180,7 +211,9 @@
   
   {% if posts_viral1 %}
     <hr>
-    <h3>More from: <strong class="d-inline-block mb-2 text-primary" style="font-size: x-large;"> Viral</strong></h3>
+    <div class="col">
+      <h3>More from:<a class="btn btn-primary" type="button" aria-expanded="false" style="line-height:0; font-size: x-large; padding-top: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('viral') }}">Viral</a></h3>
+    </div>
     <div class="row">
     {% for p in posts_viral1 %}
       <div class="column">

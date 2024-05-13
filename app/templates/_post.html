@@ -17,11 +17,11 @@
         <div class="row">
         <div class="col-9">
         <strong class="d-inline-block mb-2 text-primary">
-            {% if post.news %}News {% endif %}
-            {% if post.media %} Media {% endif %}
-            {% if post.showbiz %} Showbiz {% endif %}
-            {% if post.sports %} Sports {% endif %}
-            {% if post.viral %} Viral{% endif %}
+            {% if post.news %}<a class="btn btn-primary float-end" type="button" aria-expanded="false" style="line-height:0; font-size: larger; padding-left: 0%; padding-bottom: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('news') }}">News</a>{% endif %}
+            {% if post.media %}<a class="btn btn-primary float-end" type="button" aria-expanded="false" style="line-height:0; font-size: larger; padding-left: 0%; padding-bottom: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('media') }}">Media</a>{% endif %}
+            {% if post.showbiz %}<a class="btn btn-primary float-end" type="button" aria-expanded="false" style="line-height:0; font-size: larger; padding-left: 0%; padding-bottom: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('showbiz') }}">Showbiz</a>{% endif %}
+            {% if post.sports %}<a class="btn btn-primary float-end" type="button" aria-expanded="false" style="line-height:0; font-size: larger; padding-left: 0%; padding-bottom: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('sports') }}">Sports</a>{% endif %}
+            {% if post.viral %}<a class="btn btn-primary float-end" type="button" aria-expanded="false" style="line-height:0; font-size: larger; padding-left: 0%; padding-bottom: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('viral') }}">Viral</a>{% endif %}
         </strong>
       </div>
       

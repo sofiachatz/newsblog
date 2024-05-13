@@ -27,7 +27,21 @@
                 <a href="{{url_for('post', id=p.id)}}" class="stretched-link" style="color: white; text-decoration: none; ">
                     <b>{{ p.title }} </b></a>
             <p> - {{ moment(p.timestamp).format('LLL') }} </p>
-           
+            <div class="row">
+                <div class="col">              
+                    {% if current_user.id in p.likes|map(attribute="user_id")|list %}
+                    <i
+                    class="fa-solid fa-heart"
+                    id="like-button-{{post.id}}"></i>
+                    {% else %}
+                    <i
+                    class="fa-regular fa-heart"
+                    id="like-button-{{post.id}}"></i>
+                    {% endif %}
+                    <span id="likes-count-{{post.id}}">
+                    {{ p.likes|length }}</span>
+                </div>
+            </div>
         </div>
     </div>
 </div>
