@@ -100,7 +100,26 @@ def profile(username):
         if posts.has_next else None
     prev_url = url_for('profile', username=user.username, page=posts.prev_num) \
         if posts.has_prev else None
-    return render_template('profile.html', user=user, num_posts=num_posts, posts=posts.items, next_url=next_url, prev_url=prev_url, current_user=current_user)
+    return render_template('profile.html', title='Profile', user=user, num_posts=num_posts, posts=posts.items, next_url=next_url, prev_url=prev_url, current_user=current_user)
+
+
+
+@app.route('/profile/<username>/likes')
+def likes(username):
+    page = request.args.get('page', 1, type=int)
+    user = db.first_or_404(sa.select(User).where(User.username == username))
+    query = sa.select(Post).join(Like).where(Like.user_id==user.id).order_by(Like.timestamp.desc())
+    liked_posts = db.paginate(query, page=page,
+                            per_page=app.config['POSTS_PER_PAGE'],
+                            error_out=False)
+    next_url = url_for('likes', username=user.username, page=liked_posts.next_num) \
+        if liked_posts.has_next else None
+    prev_url = url_for('likes', username=user.username, page=liked_posts.prev_num) \
+        if liked_posts.has_prev else None
+    return render_template("likes.html", title='Likes', liked_posts=liked_posts.items, next_url=next_url, prev_url=prev_url, current_user=current_user, user=user)
+
+
+
 
 
 
@@ -111,6 +130,7 @@ def edit_profile():
     if form.validate_on_submit():
         current_user.username = form.username.data
         current_user.about_me = form.about_me.data
+        current_user.liked_posts = form.liked_posts.data
         if form.checkbox.data == True:
             current_user.profile_pic = None
             db.session.commit()
@@ -128,7 +148,8 @@ def edit_profile():
     elif request.method == 'GET':
         form.username.data = current_user.username
         form.about_me.data = current_user.about_me
-        form.profile_pic.data  = current_user.profile_pic
+        form.profile_pic.data  = current_user.profile_pic 
+        form.liked_posts.data = current_user.liked_posts
     return render_template('edit_profile.html', title='Edit Profile',
                            form=form)
 
@@ -421,4 +442,3 @@ def like_post(id):
     db.session.commit()
     return jsonify({"likes": len(post.likes), "liked": current_user.id in map(lambda x: x.user_id, post.likes)})
 
-    

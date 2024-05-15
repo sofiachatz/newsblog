@@ -60,6 +60,10 @@
             {{ form.checkbox(class='form-check-input', type="checkbox", id="CheckDefaultPic", onchange="myFunction()") }}
             {{ form.checkbox.label(class='form-check-label') }}
         </div> 
+        <div class="form-check">
+            {{ form.liked_posts(class='form-check-input', type="checkbox") }}
+            {{ form.liked_posts.label(class='form-check-label') }}
+        </div> 
         <br>
         {{ form.submit(class='btn btn-primary mb-3') }}
     </form>

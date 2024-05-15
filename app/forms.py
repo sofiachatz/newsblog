@@ -70,6 +70,7 @@ class EditProfileForm(FlaskForm):
     about_me = TextAreaField('About me', validators=[Length(min=0, max=336)])
     profile_pic = FileField('Profile Picture')
     checkbox = BooleanField('Use Default Picture')
+    liked_posts = BooleanField("Make my Liked Posts' list public")
     submit = SubmitField('Submit')
 
     def validate_username(self, username):

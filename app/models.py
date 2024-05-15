@@ -81,6 +81,7 @@ class User(UserMixin, db.Model):
         default=lambda: datetime.now(timezone.utc))
     profile_pic: so.Mapped[Optional[str]] = so.mapped_column(sa.String())
     likes = db.relationship('Like', backref='user', passive_deletes=True)
+    liked_posts: so.Mapped[Optional[bool]] = so.mapped_column(unique=False, default=False)
     
 
     def __repr__(self):
