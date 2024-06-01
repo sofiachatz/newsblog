@@ -100,6 +100,59 @@
   </div>
 </div>
 
+<section class="gradient-custom">
+  <div class="container my-5 py-5">
+    <div class="row d-flex justify-content-left">
+      <div class="col-md-12 col-lg-10 col-xl-8">
+        <div class="card">
+          <div class="card-body p-4">
+            <h3 class="text-left mb-4 pb-2">Comment Section</h3>
+            {% if authenticated %}
+              <div class="d-flex flex-start w-100">
+                {% if current_user.profile_pic %}
+                  <img src=" {{ url_for('static', filename='images/' + current_user.profile_pic)}}" class="rounded-circle shadow-1-strong me-3" width="65" height="65">
+                {% else %}
+                  <img src=" {{ url_for('static', filename='images/default-profile-icon.jpg')}}" class="rounded-circle shadow-1-strong me-3"width="65" height="65">
+                {% endif %}
+                <div class="w-100">
+                  <h5>Add a comment</h5>
+                  <form method="POST" action="" novalidate>
+                    <div class="col-md-8">
+                    <div data-mdb-input-init class="form-outline">
+                        {{ form.hidden_tag() }}
+                        {{ form.comment(class='form-control', id='textarea', rows='4', placeholder='What is your view?' + (' is-invalid' if form.comment.errors else '')) }}
+                        {%- for error in form.comment.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                        {%- endfor %}
+                    </div>
+                    </div>
+                    <div class="d-flex mt-3">
+                      {{ form.submit(class='btn btn-primary') }} 
+                    </div>
+                  </form>
+                </div>
+              </div>
+            {% else %}
+            <div class="d-flex flex-start w-100"> 
+              <h5>Loggin to comment</h5>
+            </div>
+            {% endif %}
+            <br>
+            <div class="row">
+              <div class="col">
+              {% if comments %}
+                {% for c in comments %}
+                  {% include '_comment.html' %}
+                {% endfor %}
+              {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
 {% if post.news==1 %}
   
@@ -232,5 +285,7 @@
     </div>
   {% endif %}
 {% endif %}
+
+
 
 {% endblock %}

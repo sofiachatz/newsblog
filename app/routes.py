@@ -1,10 +1,10 @@
 from flask import render_template, flash, redirect, url_for, jsonify
 from app import app
-from app.forms import LoginForm, RegistrationForm, EditProfileForm, PostForm, ResetPasswordRequestForm, ResetPasswordForm, SearchForm
+from app.forms import LoginForm, RegistrationForm, EditProfileForm, PostForm, ResetPasswordRequestForm, ResetPasswordForm, SearchForm, CommentForm
 from flask_login import current_user, login_user
 import sqlalchemy as sa
 from app import db
-from app.models import User, Post, Like
+from app.models import User, Post, Like, Comment
 from flask_login import logout_user
 from flask_login import login_required
 from flask import request
@@ -206,9 +206,22 @@ def create_post():
         return render_template('error.html', error=error)
         
 
-@app.route('/post/<id>')
+@app.route('/post/<id>', methods=['GET', 'POST'])
 def post(id):
     post = db.first_or_404(sa.select(Post).where(Post.id == id))
+    form = CommentForm()
+    if current_user.is_authenticated:
+        authenticated = True
+    else:
+        authenticated = False
+    if form.validate_on_submit():
+        if not authenticated:
+            error="Comment cannot be empty!"
+            return render_template('error.html', error=error)
+        comment = Comment(body=form.comment.data, user_id=current_user.id, post_id=post.id)
+        db.session.add(comment)
+        db.session.commit()
+        return redirect(url_for('post', id=post.id))
     query = sa.select(Post).where((Post.media==1)&(Post.id!=post.id)).order_by(Post.timestamp.desc())
     posts_media1 = db.session.scalars(query).all()[:4]
     posts_media2 = db.session.scalars(query).all()[5:8]
@@ -227,9 +240,21 @@ def post(id):
     filter_after = datetime.today() - timedelta(days = 60)
     query = sa.select(Post).join(Like).where(Post.id!=post.id).filter(Post.timestamp >= filter_after).group_by(Like.post_id).order_by(func.count(Like.post_id).desc()).order_by(Post.timestamp.desc())
     trending = db.session.scalars(query).all()[:6]
+    if authenticated:
+        query = sa.select(Comment).where((Comment.post_id==post.id)&(Comment.parent_id==None)&(Comment.user_id==current_user.id)).order_by(Comment.timestamp.desc())
+        comm1 =  db.session.scalars(query).all()
+        query = sa.select(Comment).where((Comment.post_id==post.id)&(Comment.parent_id==None)&(Comment.user_id!=current_user.id)).order_by(Comment.timestamp.desc())
+        comm2 =  db.session.scalars(query).all()
+        comments = comm1+comm2
+    else:
+        query = sa.select(Comment).where((Comment.post_id==post.id)&(Comment.parent_id==None)).order_by(Comment.timestamp.desc())
+        comments =  db.session.scalars(query).all()
+    query = sa.select(Comment).where((Comment.post_id==post.id)&(Comment.parent_id!=None)).order_by(Comment.timestamp.desc())
+    replies =  db.session.scalars(query).all()
     return render_template('post.html', post=post, posts_media1=posts_media1, posts_media2=posts_media2, posts_news1=posts_news1, posts_news2=posts_news2, 
-                           posts_sports1=posts_sports1, posts_sports2=posts_sports2, posts_showbiz1=posts_showbiz1, posts_showbiz2=posts_showbiz2,
-                           posts_viral1=posts_viral1, posts_viral2=posts_viral2, current_user=current_user, trending=trending)
+                            posts_sports1=posts_sports1, posts_sports2=posts_sports2, posts_showbiz1=posts_showbiz1, posts_showbiz2=posts_showbiz2,
+                            posts_viral1=posts_viral1, posts_viral2=posts_viral2, current_user=current_user, trending=trending, comments=comments, replies=replies, 
+                            form=form, authenticated=authenticated)
 
 
 @app.route('/edit_post/<id>', methods=['GET', 'POST'])
@@ -239,7 +264,6 @@ def edit_post(id):
     if post.author == current_user:
         form = PostForm()
         if form.validate_on_submit():
-            
             post.title = form.title.data
             post.body = form.body.data
             post.lead_in = form.lead_in.data
@@ -442,3 +466,16 @@ def like_post(id):
     db.session.commit()
     return jsonify({"likes": len(post.likes), "liked": current_user.id in map(lambda x: x.user_id, post.likes)})
 
+
+@app.route('/delete_comment/<id>', methods=['GET', 'POST'])
+@login_required
+def delete_comment(id):
+    comment = db.first_or_404(sa.select(Comment).where(Comment.id == id))
+    if comment.author == current_user:
+        db.session.delete(comment)       
+        db.session.commit()
+        flash('Your comment has been deleted.')
+        return redirect(url_for('post', id=comment.post_id))
+    else:
+        error="You cannot delete the comment of another user!"
+        return render_template('error.html', error=error)

@@ -164,3 +164,8 @@ class SearchForm(FlaskForm):
         if 'meta' not in kwargs:
             kwargs['meta'] = {'csrf': False}
         super(SearchForm, self).__init__(*args, **kwargs)
+
+
+class CommentForm(FlaskForm):
+    comment = TextAreaField(validators=[DataRequired(),Length(min=0, max=200)])
+    submit = SubmitField('Send')

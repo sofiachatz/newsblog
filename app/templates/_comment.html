@@ -1,0 +1,28 @@
+<div class="d-flex flex-start">
+  {% if c.author.profile_pic %}
+    <img src=" {{ url_for('static', filename='images/' + c.author.profile_pic)}}" class="rounded-circle shadow-1-strong me-3" width="65" height="65">
+  {% else %}
+    <img src=" {{ url_for('static', filename='images/default-profile-icon.jpg')}}" class="rounded-circle shadow-1-strong me-3"width="65" height="65">
+  {% endif %}
+    <div class="flex-grow-1 flex-shrink-1">
+      <div>
+        <div class="d-flex align-items-center">
+          <p class="mb-1">
+            {{ c.author.username }} <span class="small">- {{ moment(c.timestamp).format('LLL') }}</span>
+          </p>
+          {% if c.author == current_user %}
+          <a href="{{ url_for('delete_comment', id=c.id) }}" class="link-dark link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover"><i class="bi bi-trash3" style="margin-left: 1ch;"></i></a>
+          {% endif %}
+        </div>
+        <p class="small mb-0">
+          {{ c.body }}
+        </p>
+      </div>
+        {% for r in replies %}
+          {% if r.parent_id == c.id %}
+            {% include '_reply.html' %}
+          {% endif %}
+        {% endfor %} 
+    </div>
+  </div>
+  <br>

@@ -82,6 +82,7 @@ class User(UserMixin, db.Model):
     profile_pic: so.Mapped[Optional[str]] = so.mapped_column(sa.String())
     likes = db.relationship('Like', backref='user', passive_deletes=True)
     liked_posts: so.Mapped[Optional[bool]] = so.mapped_column(unique=False, default=False)
+    comments = db.relationship('Comment', back_populates='author', passive_deletes=True)
     
 
     def __repr__(self):
@@ -128,6 +129,7 @@ class Post(SearchableMixin, db.Model):
     viral: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer())
     post_pic: so.Mapped[Optional[str]] = so.mapped_column(sa.String())
     likes = db.relationship('Like', backref='post', passive_deletes=True)
+    comments = db.relationship('Comment', backref='post', passive_deletes=True)
 
 
     def __repr__(self):
@@ -139,3 +141,17 @@ class Like(db.Model):
     post_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Post.id, ondelete="CASCADE"), nullable=False)
     timestamp: so.Mapped[datetime] = so.mapped_column(
         index=True, default=lambda: datetime.now(timezone.utc))
+
+
+
+class Comment(db.Model):
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    body: so.Mapped[str] = so.mapped_column(sa.String(200))
+    user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id, ondelete="CASCADE"), nullable=False)
+    post_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Post.id, ondelete="CASCADE"), nullable=False)
+    timestamp: so.Mapped[datetime] = so.mapped_column(
+        index=True, default=lambda: datetime.now(timezone.utc))
+    parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.ForeignKey('comment.id', ondelete="CASCADE"), nullable=True)
+    replies = db.relationship('Comment', backref=db.backref('parent', remote_side=[id]), lazy='dynamic', passive_deletes=True)
+    reply_to: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer())
+    author: so.Mapped[User] = so.relationship(back_populates='comments')
