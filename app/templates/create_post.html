@@ -48,7 +48,7 @@
         <div class="form-row">
             <div class="form-group col-md-6">
                 {{ form.body.label(class='form-label') }}
-                {{ form.body(class='form-control', rows="7" + (' is-invalid' if form.body.errors else '')) }}
+                {{ form.body(class='form-control' + (' is-invalid' if form.body.errors else ''), rows="7" ) }}
                 {%- for error in form.body.errors %}
                 <div class="invalid-feedback">{{ error }}</div>
                 {%- endfor %}
@@ -60,7 +60,7 @@
                 <label class="input-group-text" for="customFile"> 
                     <i class="bi bi-file-earmark-image"></i> 
                 </label> 
-                {{ form.post_pic(type='file', class='form-control visually-hidden', id="customFile", accept="image/*", onchange="showFiles(this)" + (' is-invalid' if form.post_pic.errors else '')) }}
+                {{ form.post_pic(type='file', class='form-control visually-hidden' + (' is-invalid' if form.post_pic.errors else ''), id="customFile", accept="image/*", onchange="showFiles(this)") }}
                 <button class="button1" type="button" 
                     onclick="document.getElementById('customFile').click()"> 
                     Post's Picture 

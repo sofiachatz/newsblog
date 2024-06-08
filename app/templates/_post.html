@@ -41,7 +41,7 @@
       </div>
         <div class="box"><h4>{{ post.title}}</h4></div>
         <div class="mb-1 text-muted">
-            <p>by <a href="{{ url_for('profile', username=post.author.username) }}">
+            <p>by <a href="{{ url_for('profile', username=post.author.username) }}" class="link-offset-2 link-underline link-underline-opacity-0">
             {{ post.author.username }} </a> - {{ moment(post.timestamp).format('LLL') }} </p>
         </div>
         {% if post.lead_in %}

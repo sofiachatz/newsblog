@@ -153,5 +153,5 @@ class Comment(db.Model):
         index=True, default=lambda: datetime.now(timezone.utc))
     parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.ForeignKey('comment.id', ondelete="CASCADE"), nullable=True)
     replies = db.relationship('Comment', backref=db.backref('parent', remote_side=[id]), lazy='dynamic', passive_deletes=True)
-    reply_to: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer())
+    reply_to: so.Mapped[Optional[str]] = so.mapped_column(sa.String(64))
     author: so.Mapped[User] = so.relationship(back_populates='comments')

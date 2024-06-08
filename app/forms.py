@@ -169,3 +169,9 @@ class SearchForm(FlaskForm):
 class CommentForm(FlaskForm):
     comment = TextAreaField(validators=[DataRequired(),Length(min=0, max=200)])
     submit = SubmitField('Send')
+
+
+class ReplyForm(FlaskForm):
+    reply = TextAreaField(validators=[DataRequired(),Length(min=0, max=200)])
+    parent_id = StringField()
+    submit = SubmitField('Send')

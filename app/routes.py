@@ -1,10 +1,10 @@
 from flask import render_template, flash, redirect, url_for, jsonify
 from app import app
-from app.forms import LoginForm, RegistrationForm, EditProfileForm, PostForm, ResetPasswordRequestForm, ResetPasswordForm, SearchForm, CommentForm
+from app.forms import LoginForm, RegistrationForm, EditProfileForm, PostForm, ResetPasswordRequestForm, ResetPasswordForm, SearchForm, CommentForm, ReplyForm
 from flask_login import current_user, login_user
 import sqlalchemy as sa
 from app import db
-from app.models import User, Post, Like, Comment
+from app.models import User, Post, Like, Comment 
 from flask_login import logout_user
 from flask_login import login_required
 from flask import request
@@ -210,15 +210,30 @@ def create_post():
 def post(id):
     post = db.first_or_404(sa.select(Post).where(Post.id == id))
     form = CommentForm()
+    form2 = ReplyForm()
     if current_user.is_authenticated:
         authenticated = True
     else:
         authenticated = False
     if form.validate_on_submit():
         if not authenticated:
-            error="Comment cannot be empty!"
+            error="Login to comment."
             return render_template('error.html', error=error)
         comment = Comment(body=form.comment.data, user_id=current_user.id, post_id=post.id)
+        db.session.add(comment)
+        db.session.commit()
+        return redirect(url_for('post', id=post.id))
+    if form2.validate_on_submit():
+        if not authenticated:
+            error="Login to comment."
+            return render_template('error.html', error=error)
+        parent_id = form2.parent_id.data
+        reply_to = None
+        comment = db.first_or_404(sa.select(Comment).where(Comment.id == parent_id))
+        if comment.parent_id:
+            reply_to = comment.author.username
+            parent_id = comment.parent_id
+        comment = Comment(body=form2.reply.data, user_id=current_user.id, post_id=post.id, parent_id=parent_id, reply_to=reply_to)
         db.session.add(comment)
         db.session.commit()
         return redirect(url_for('post', id=post.id))
@@ -249,12 +264,12 @@ def post(id):
     else:
         query = sa.select(Comment).where((Comment.post_id==post.id)&(Comment.parent_id==None)).order_by(Comment.timestamp.desc())
         comments =  db.session.scalars(query).all()
-    query = sa.select(Comment).where((Comment.post_id==post.id)&(Comment.parent_id!=None)).order_by(Comment.timestamp.desc())
+    query = sa.select(Comment).where((Comment.post_id==post.id)&(Comment.parent_id!=None)).order_by(Comment.timestamp)
     replies =  db.session.scalars(query).all()
     return render_template('post.html', post=post, posts_media1=posts_media1, posts_media2=posts_media2, posts_news1=posts_news1, posts_news2=posts_news2, 
                             posts_sports1=posts_sports1, posts_sports2=posts_sports2, posts_showbiz1=posts_showbiz1, posts_showbiz2=posts_showbiz2,
                             posts_viral1=posts_viral1, posts_viral2=posts_viral2, current_user=current_user, trending=trending, comments=comments, replies=replies, 
-                            form=form, authenticated=authenticated)
+                            form=form, form2=form2, authenticated=authenticated)
 
 
 @app.route('/edit_post/<id>', methods=['GET', 'POST'])

@@ -27,7 +27,7 @@
         <div class="form-row">
             <div class="col-md-3">
                 {{ form.about_me.label(class='form-label') }}
-                {{ form.about_me(class='form-control', rows="7" + (' is-invalid' if form.about_me.errors else '')) }}
+                {{ form.about_me(class='form-control' + (' is-invalid' if form.about_me.errors else ''), rows="7") }}
                 {%- for error in form.about_me.errors %}
                 <div class="invalid-feedback">{{ error }}</div>
                 {%- endfor %}
@@ -39,7 +39,7 @@
                 <label class="input-group-text" for="customFile"> 
                     <i class="bi bi-file-earmark-image"></i> 
                 </label> 
-                {{ form.profile_pic(type='file', class='form-control visually-hidden', id="customFile", accept="image/*", onchange="showFiles(this)" + (' is-invalid' if form.profile_pic.errors else '')) }}
+                {{ form.profile_pic(type='file', class='form-control visually-hidden' + (' is-invalid' if form.profile_pic.errors else ''), id="customFile", accept="image/*", onchange="showFiles(this)" ) }}
                 <button class="button1" type="button" 
                     onclick="document.getElementById('customFile').click()"> 
                     Profile Picture 

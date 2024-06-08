@@ -14,3 +14,10 @@ function like(postId) {
       })
       .catch((e) => alert("Login to like posts."));
   }
+
+function reply(cId) {
+  const parent_id = document.getElementsByName("parent_id");
+    for (let i = 0; i < parent_id.length; i++) {
+      parent_id[i].value = cId;
+    }
+}
