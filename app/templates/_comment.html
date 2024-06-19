@@ -16,6 +16,21 @@
           {% if authenticated %}
             <a data-bs-toggle="collapse" href="#{{c.id}}" class="link-dark link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover"><i class="bi bi-reply" style="margin-left: 1ch;"></i></a>
           {% endif %}
+          {% if current_user.id in c.likes|map(attribute="user_id")|list %}
+          <i
+            class="fa-solid fa-heart"
+            id="like-comm-btn-{{c.id}}"
+            style="margin-left: 1ch;"
+            onclick="like_comm({{c.id}})"></i>
+          {% else %}
+          <i
+            class="fa-regular fa-heart"
+            id="like-comm-btn-{{c.id}}"
+            style="margin-left: 1ch;"
+            onclick="like_comm({{c.id}})"></i>
+          {% endif %}
+          <span id="likes-comm-count-{{c.id}}" style="margin-left: 0.5ch;">
+            {{ c.likes|length }}</span>
         </div>
         <p class="small mb-0">
           {{ c.body }}
@@ -46,11 +61,16 @@
             </form>
           </div>
       </div>
+      {% if c.id|filter_replies != 0 %}
+      <a data-bs-toggle="collapse" href="#replies-{{c.id}}" class="link-offset-2 link-underline link-underline-opacity-0"> View replies ({{ c.id|filter_replies }})</a>
+      {% endif %}
+      <div class="collapse" id="replies-{{c.id}}">
         {% for r in replies %}
           {% if r.parent_id == c.id %}
             {% include '_reply.html' %}
           {% endif %}
         {% endfor %} 
+      </div>
     </div>
   </div>
   <br>

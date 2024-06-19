@@ -83,6 +83,7 @@ class User(UserMixin, db.Model):
     likes = db.relationship('Like', backref='user', passive_deletes=True)
     liked_posts: so.Mapped[Optional[bool]] = so.mapped_column(unique=False, default=False)
     comments = db.relationship('Comment', back_populates='author', passive_deletes=True)
+    likes_comments = db.relationship('Like_Comment', backref='user', passive_deletes=True)
     
 
     def __repr__(self):
@@ -155,3 +156,13 @@ class Comment(db.Model):
     replies = db.relationship('Comment', backref=db.backref('parent', remote_side=[id]), lazy='dynamic', passive_deletes=True)
     reply_to: so.Mapped[Optional[str]] = so.mapped_column(sa.String(64))
     author: so.Mapped[User] = so.relationship(back_populates='comments')
+    likes = db.relationship('Like_Comment', backref='comment', passive_deletes=True)
+    num_likes: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer())
+
+
+class Like_Comment(db.Model):
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id, ondelete="CASCADE"), nullable=False)
+    comment_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Comment.id, ondelete="CASCADE"), nullable=False)
+    timestamp: so.Mapped[datetime] = so.mapped_column(
+        index=True, default=lambda: datetime.now(timezone.utc))

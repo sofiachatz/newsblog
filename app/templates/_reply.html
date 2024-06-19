@@ -16,6 +16,21 @@
           {% if authenticated %}
             <a data-bs-toggle="collapse" href="#{{r.id}}" class="link-dark link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover"><i class="bi bi-reply" style="margin-left: 1ch;"></i></a>
           {% endif %}
+          {% if current_user.id in r.likes|map(attribute="user_id")|list %}
+          <i
+            class="fa-solid fa-heart"
+            id="like-comm-btn-{{r.id}}"
+            style="margin-left: 1ch;"
+            onclick="like_comm({{r.id}})"></i>
+          {% else %}
+          <i
+            class="fa-regular fa-heart"
+            id="like-comm-btn-{{r.id}}"
+            style="margin-left: 1ch;"
+            onclick="like_comm({{r.id}})"></i>
+          {% endif %}
+          <span id="likes-comm-count-{{r.id}}" style="margin-left: 0.5ch;">
+            {{ r.likes|length }}</span>
         </div>
         <p class="small mb-0">
             {% if r.reply_to %}<a href="{{ url_for('profile', username=r.reply_to) }}" class="link-offset-2 link-underline link-underline-opacity-0">{{ r.reply_to }}</a>{% endif %} {{ r.body }}

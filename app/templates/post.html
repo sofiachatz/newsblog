@@ -87,6 +87,7 @@
     <h5>{{ post.body }}</h5>
     <br>
   </div>
+  {% if trending %}
   <div class="col-md-4">
     <div class="position-sticky" style="top: 2rem;">
       <div class="p-4 mb-4 bg-light rounded">
@@ -97,10 +98,40 @@
       </div>
     </div>
   </div>
+  {% endif %}
 </div>
 
 <section class="gradient-custom">
   <div class="container my-5 py-5">
+    <div class="row d-flex justify-content-left">
+      <div class="col-md-1">
+        <div class="card" >
+          <div class="card-body">
+          {% if current_user.id in post.likes|map(attribute="user_id")|list %}
+            <i
+              class="fa-solid fa-heart fa-2xl"
+              id="like-btn-{{post.id}}"
+              onclick="likePost({{post.id}})" ></i>
+          {% else %}
+            <i
+              class="fa-regular fa-heart fa-2xl"
+              id="like-btn-{{post.id}}"
+              onclick="likePost({{post.id}})"></i>
+          {% endif %}
+            <span id="likes-cnt-{{post.id}}" style="font-size:x-large;">{{ post.likes|length }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="col d-flex">
+        <div class="card" >
+          <div class="card-body">
+            <i class="fa-regular fa-comment fa-2xl"></i>
+            <span style="font-size:x-large;">{{ post.comments|length }}</span>
+          </div>
+        </div>  
+      </div>
+    </div>
+    <br>
     <div class="row d-flex justify-content-left">
       <div class="col-md-12 col-lg-10 col-xl-8">
         <div class="card">
@@ -138,13 +169,23 @@
             <br>
             <div class="row">
               <div class="col">
-              {% if comments %}
                 {% for c in comments %}
                   {% include '_comment.html' %}
                 {% endfor %}
-              {% else %}
-                <small class="text-muted">No Comments</small>
-              {% endif %}
+                <nav aria-label="Comment navigation">
+                  <ul class="pagination">
+                      <li class="page-item{% if not prev_url %} disabled{% endif %}">
+                          <a class="page-link" href="{{ prev_url }}">
+                              <span aria-hidden="true">&laquo;</span> Previous 
+                          </a>
+                      </li>
+                      <li class="page-item{% if not next_url %} disabled{% endif %}">
+                          <a class="page-link" href="{{ next_url }}">
+                              More  <span aria-hidden="true">&raquo;</span>
+                          </a>
+                      </li>
+                  </ul>
+                </nav>
               </div>
             </div>
           </div>

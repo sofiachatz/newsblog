@@ -4,7 +4,7 @@ from app.forms import LoginForm, RegistrationForm, EditProfileForm, PostForm, Re
 from flask_login import current_user, login_user
 import sqlalchemy as sa
 from app import db
-from app.models import User, Post, Like, Comment 
+from app.models import User, Post, Like, Comment, Like_Comment
 from flask_login import logout_user
 from flask_login import login_required
 from flask import request
@@ -35,12 +35,13 @@ def before_request():
 def index():
     page = request.args.get('page', 1, type=int)
     query = sa.select(Post).order_by(Post.timestamp.desc())
+    posts = db.session.scalars(query).all()
     posts = db.paginate(query, page=page,
                         per_page=app.config['POSTS_PER_PAGE'], error_out=False)
     next_url = url_for('index', page=posts.next_num) \
         if posts.has_next else None
     prev_url = url_for('index', page=posts.prev_num) \
-        if posts.has_prev else None
+        if posts.has_prev else None 
     return render_template("index.html", title='Home', posts=posts.items, next_url=next_url, prev_url=prev_url, current_user=current_user)
 
 
@@ -204,7 +205,16 @@ def create_post():
     except ConnectionTimeoutError:
         error="Connection Timeout error!"
         return render_template('error.html', error=error)
-        
+
+
+
+@app.template_filter("filter_replies")
+def filter_replies(id):
+    query = sa.select(Comment).where((Comment.parent_id==id))
+    replies = db.session.scalars(query).all()
+    return len(replies)
+
+
 
 @app.route('/post/<id>', methods=['GET', 'POST'])
 def post(id):
@@ -252,24 +262,23 @@ def post(id):
     query = sa.select(Post).where((Post.viral==1)&(Post.id!=post.id)).order_by(Post.timestamp.desc())
     posts_viral1 = db.session.scalars(query).all()[:4]
     posts_viral2 = db.session.scalars(query).all()[5:8]
-    filter_after = datetime.today() - timedelta(days = 60)
+    filter_after = datetime.today() - timedelta(days = 120)
     query = sa.select(Post).join(Like).where(Post.id!=post.id).filter(Post.timestamp >= filter_after).group_by(Like.post_id).order_by(func.count(Like.post_id).desc()).order_by(Post.timestamp.desc())
     trending = db.session.scalars(query).all()[:6]
-    if authenticated:
-        query = sa.select(Comment).where((Comment.post_id==post.id)&(Comment.parent_id==None)&(Comment.user_id==current_user.id)).order_by(Comment.timestamp.desc())
-        comm1 =  db.session.scalars(query).all()
-        query = sa.select(Comment).where((Comment.post_id==post.id)&(Comment.parent_id==None)&(Comment.user_id!=current_user.id)).order_by(Comment.timestamp.desc())
-        comm2 =  db.session.scalars(query).all()
-        comments = comm1+comm2
-    else:
-        query = sa.select(Comment).where((Comment.post_id==post.id)&(Comment.parent_id==None)).order_by(Comment.timestamp.desc())
-        comments =  db.session.scalars(query).all()
+    page = request.args.get('page', 1, type=int)
+    query = sa.select(Comment).where((Comment.post_id==post.id)&(Comment.parent_id==None)).order_by(Comment.num_likes.desc()).order_by(Comment.timestamp.desc())
+    comments = db.paginate(query, page=page,
+                        per_page=app.config['POSTS_PER_PAGE'], error_out=False)
     query = sa.select(Comment).where((Comment.post_id==post.id)&(Comment.parent_id!=None)).order_by(Comment.timestamp)
     replies =  db.session.scalars(query).all()
+    next_url = url_for('post', id=post.id, page=comments.next_num) \
+        if comments.has_next else None
+    prev_url = url_for('post', id=post.id, page=comments.prev_num) \
+        if comments.has_prev else None
     return render_template('post.html', post=post, posts_media1=posts_media1, posts_media2=posts_media2, posts_news1=posts_news1, posts_news2=posts_news2, 
                             posts_sports1=posts_sports1, posts_sports2=posts_sports2, posts_showbiz1=posts_showbiz1, posts_showbiz2=posts_showbiz2,
                             posts_viral1=posts_viral1, posts_viral2=posts_viral2, current_user=current_user, trending=trending, comments=comments, replies=replies, 
-                            form=form, form2=form2, authenticated=authenticated)
+                            form=form, form2=form2, authenticated=authenticated, next_url=next_url, prev_url=prev_url)
 
 
 @app.route('/edit_post/<id>', methods=['GET', 'POST'])
@@ -494,3 +503,20 @@ def delete_comment(id):
     else:
         error="You cannot delete the comment of another user!"
         return render_template('error.html', error=error)
+
+
+@app.route('/like_comment/<id>', methods=['POST'])
+@login_required
+def like_comment(id):
+    comment = db.first_or_404(sa.select(Comment).where(Comment.id == id))
+    query = sa.select(Like_Comment).where((Like_Comment.user_id==current_user.id)&(Like_Comment.comment_id==comment.id))
+    like = db.session.scalars(query).first()
+    if like:
+        db.session.delete(like)
+    else:
+        like = Like_Comment(user_id=current_user.id, comment_id=comment.id)
+        db.session.add(like)
+    db.session.commit()
+    comment.num_likes = len(comment.likes)
+    db.session.commit()
+    return jsonify({"likes": len(comment.likes), "liked": current_user.id in map(lambda x: x.user_id, comment.likes)})
