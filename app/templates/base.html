@@ -59,6 +59,14 @@
                   <a class="nav-link" href="{{ url_for('profile', username=current_user.username) }}">Profile</a>
                 </li>
                 <li class="nav-item">
+                  <a class="nav-link" href="{{ url_for('notifications') }}">Notifications 
+                    {% set unread_notification_count = current_user.unread_notification_count() %}
+                    <span id="notification_count" class="badge text-bg-secondary" style="visibility: {% if unread_notification_count %} visible {% else %} hidden {% endif %};"> 
+                      {{ unread_notification_count }}
+                    </span>
+                  </a>
+                </li>
+                <li class="nav-item">
                   <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
                 </li>
                 {% endif %}
@@ -104,5 +112,22 @@
       <script
       type="text/javascript"
       src="{{ url_for('static', filename='index.js')}}"></script>
+      <script>
+        {% if current_user.is_authenticated %}
+          function initialize_notification_calls() {
+            let since = 0;
+            setInterval(async function() {
+              const response = await fetch('{{ url_for('notification_calls') }}?since=' + since);
+              const notification_calls = await response.json();
+              for (let i = 0; i < notification_calls.length; i++) {
+                if (notification_calls[i].name == 'unread_notification_count')
+                  set_notification_count(notification_calls[i].data);
+                since = notification_calls[i].timestamp;
+              }
+            }, 10000);
+          }
+          document.addEventListener('DOMContentLoaded', initialize_notification_calls);
+        {% endif %}
+      </script>
   </body>
 </html>

@@ -4,7 +4,7 @@ from app.forms import LoginForm, RegistrationForm, EditProfileForm, PostForm, Re
 from flask_login import current_user, login_user
 import sqlalchemy as sa
 from app import db
-from app.models import User, Post, Like, Comment, Like_Comment
+from app.models import User, Post, Like, Comment, Like_Comment, Notification, Notification_Call
 from flask_login import logout_user
 from flask_login import login_required
 from flask import request
@@ -484,9 +484,17 @@ def like_post(id):
     like = db.session.scalars(query).first()
     if like:
         db.session.delete(like)
+        query = sa.select(Notification).where((Notification.sender_id==current_user.id)&(Notification.recipient_id==post.user_id)&(Notification.post_id==post.id)&(Notification.category=="like_post"))
+        notification = db.session.scalars(query).first()
+        if notification:
+            db.session.delete(notification)
     else:
         like = Like(user_id=current_user.id, post_id=post.id)
+        notification = Notification(sender_id=current_user.id, recipient_id=post.user_id, post_id=post.id, category="like_post")
         db.session.add(like)
+        db.session.add(notification)
+    db.session.commit()
+    post.author.add_notification_call('unread_notification_count', post.author.unread_notification_count())
     db.session.commit()
     return jsonify({"likes": len(post.likes), "liked": current_user.id in map(lambda x: x.user_id, post.likes)})
 
@@ -520,3 +528,38 @@ def like_comment(id):
     comment.num_likes = len(comment.likes)
     db.session.commit()
     return jsonify({"likes": len(comment.likes), "liked": current_user.id in map(lambda x: x.user_id, comment.likes)})
+
+
+@app.route('/notifications')
+@login_required
+def notifications():
+    current_user.last_notification_read_time = datetime.now(timezone.utc)
+    current_user.add_notification_call('unread_notification_count', 0)
+    db.session.commit()
+    page = request.args.get('page', 1, type=int)
+    query = current_user.notifications_received.select().order_by(
+        Notification.timestamp.desc())
+    notifications = db.paginate(query, page=page,
+                           per_page=app.config['POSTS_PER_PAGE'],
+                           error_out=False)
+    next_url = url_for('notifications', page=notifications.next_num) \
+        if notifications.has_next else None
+    prev_url = url_for('notifications', page=notifications.prev_num) \
+        if notifications.has_prev else None
+    return render_template('notifications.html', notifications=notifications.items,
+                           next_url=next_url, prev_url=prev_url)
+
+
+
+@app.route('/notification_calls')
+@login_required
+def notification_calls():
+    since = request.args.get('since', 0.0, type=float)
+    query = current_user.notification_calls.select().where(
+        Notification_Call.timestamp > since).order_by(Notification_Call.timestamp.asc())
+    notification_calls = db.session.scalars(query)
+    return [{
+        'name': n.name,
+        'data': n.get_data(),
+        'timestamp': n.timestamp
+    } for n in notification_calls]

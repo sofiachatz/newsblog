@@ -56,3 +56,9 @@ function reply(cId) {
       parent_id[i].value = cId;
     }
 }
+
+function set_notification_count(n) {
+  const count = document.getElementById('notification_count');
+  count.innerText = n;
+  count.style.visibility = n ? 'visible' : 'hidden';
+}

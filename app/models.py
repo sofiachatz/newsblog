@@ -8,6 +8,7 @@ from flask_login import UserMixin
 from app import login
 from time import time
 import jwt
+import json
 from app import app
 from app.search import add_to_index, remove_from_index, query_index
 from elasticsearch.exceptions import ConnectionError as ElasticConnectionError
@@ -84,7 +85,28 @@ class User(UserMixin, db.Model):
     liked_posts: so.Mapped[Optional[bool]] = so.mapped_column(unique=False, default=False)
     comments = db.relationship('Comment', back_populates='author', passive_deletes=True)
     likes_comments = db.relationship('Like_Comment', backref='user', passive_deletes=True)
-    
+    last_notification_read_time: so.Mapped[Optional[datetime]]
+    notifications_sent: so.WriteOnlyMapped['Notification'] = so.relationship(
+        foreign_keys='Notification.sender_id', back_populates='sender', passive_deletes=True)
+    notifications_received: so.WriteOnlyMapped['Notification'] = so.relationship(
+        foreign_keys='Notification.recipient_id', back_populates='recipient', passive_deletes=True)
+    notification_calls: so.WriteOnlyMapped['Notification_Call'] = so.relationship(
+        back_populates='user')
+
+
+    def unread_notification_count(self):
+        last_read_time = self.last_notification_read_time or datetime(1900, 1, 1)
+        query = sa.select(Notification).where(Notification.recipient == self,
+                                         Notification.timestamp > last_read_time)
+        return db.session.scalar(sa.select(sa.func.count()).select_from(
+            query.subquery()))
+
+    def add_notification_call(self, name, data):
+        db.session.execute(self.notification_calls.delete().where(
+            Notification_Call.name == name))
+        n = Notification_Call(name=name, payload_json=json.dumps(data), user=self)
+        db.session.add(n)
+        return n
 
     def __repr__(self):
         return '<User {}>'.format(self.username)
@@ -131,7 +153,8 @@ class Post(SearchableMixin, db.Model):
     post_pic: so.Mapped[Optional[str]] = so.mapped_column(sa.String())
     likes = db.relationship('Like', backref='post', passive_deletes=True)
     comments = db.relationship('Comment', backref='post', passive_deletes=True)
-
+    notifications: so.WriteOnlyMapped['Notification'] = so.relationship(
+        foreign_keys='Notification.post_id', back_populates='post', passive_deletes=True)
 
     def __repr__(self):
         return '<Post {}>'.format(self.title)
@@ -158,6 +181,8 @@ class Comment(db.Model):
     author: so.Mapped[User] = so.relationship(back_populates='comments')
     likes = db.relationship('Like_Comment', backref='comment', passive_deletes=True)
     num_likes: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer())
+    notifications: so.WriteOnlyMapped['Notification'] = so.relationship(
+        foreign_keys='Notification.comment_id', back_populates='comment', passive_deletes=True)
 
 
 class Like_Comment(db.Model):
@@ -166,3 +191,40 @@ class Like_Comment(db.Model):
     comment_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Comment.id, ondelete="CASCADE"), nullable=False)
     timestamp: so.Mapped[datetime] = so.mapped_column(
         index=True, default=lambda: datetime.now(timezone.utc))
+
+
+class Notification(db.Model):
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    recipient_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id, ondelete="CASCADE"), index=True)
+    sender_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id, ondelete="CASCADE"), index=True)
+    post_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Post.id, ondelete="CASCADE"), index=True)
+    comment_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Comment.id, ondelete="CASCADE"), index=True, nullable=True)
+    timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
+    category: so.Mapped[str] = so.mapped_column(sa.String(15))
+    status: so.Mapped[Optional[bool]] = so.mapped_column(unique=False, default=False)
+    sender: so.Mapped[User] = so.relationship(
+        foreign_keys='Notification.sender_id',
+        back_populates='notifications_sent')
+    recipient: so.Mapped[User] = so.relationship(
+        foreign_keys='Notification.recipient_id',
+        back_populates='notifications_received')
+    post: so.Mapped[Post] = so.relationship(
+        foreign_keys='Notification.post_id',
+        back_populates='notifications')
+    comment: so.Mapped[Comment] = so.relationship(
+        foreign_keys='Notification.comment_id',
+        back_populates='notifications')
+
+
+class Notification_Call(db.Model):
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    name: so.Mapped[str] = so.mapped_column(sa.String(128), index=True)
+    user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id),
+                                               index=True)
+    timestamp: so.Mapped[float] = so.mapped_column(index=True, default=time)
+    payload_json: so.Mapped[str] = so.mapped_column(sa.Text)
+
+    user: so.Mapped[User] = so.relationship(back_populates='notification_calls')
+
+    def get_data(self):
+        return json.loads(str(self.payload_json))
