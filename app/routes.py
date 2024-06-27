@@ -229,8 +229,13 @@ def post(id):
         if not authenticated:
             error="Login to comment."
             return render_template('error.html', error=error)
-        comment = Comment(body=form.comment.data, user_id=current_user.id, post_id=post.id)
+        comment = Comment(body=form.comment.data, user_id=current_user.id, post_id=post.id)      
         db.session.add(comment)
+        db.session.commit()
+        notification = Notification(sender_id=current_user.id, recipient_id=post.user_id, post_id=post.id, comment_id=comment.id, category="comment_post")
+        db.session.add(notification)
+        db.session.commit()
+        post.author.add_notification_call('unread_notification_count', post.author.unread_notification_count())
         db.session.commit()
         return redirect(url_for('post', id=post.id))
     if form2.validate_on_submit():

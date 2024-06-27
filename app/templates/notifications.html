@@ -20,6 +20,8 @@
                       {{ n.sender.username }}
                       {% if n.category == "like_post" %}
                       <span class="text-body ms-2">liked your post "{{ n.post.title }}"</span>
+                      {% elif n.category == "comment_post" %}
+                      <span class="text-body ms-2">comment "{{n.comment.body}}" on your post "{{ n.post.title }}"</span>
                       {% endif %}
                     </h6>
                     <p class="mb-0">{{ moment(n.timestamp).fromNow() }}</p>

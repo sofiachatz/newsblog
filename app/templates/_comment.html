@@ -1,4 +1,15 @@
-<div class="d-flex flex-start">
+<style>
+  #column1 {
+            width: 100%;
+            height: 100%;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            display: flex;
+            align-items: left;
+            justify-content: left;
+        }
+</style>
+<div class="col" id="column1">
   {% if c.author.profile_pic %}
     <img src=" {{ url_for('static', filename='images/' + c.author.profile_pic)}}" class="rounded-circle shadow-1-strong me-3" width="65" height="65">
   {% else %}
@@ -21,7 +32,7 @@
             class="fa-solid fa-heart"
             id="like-comm-btn-{{c.id}}"
             style="margin-left: 1ch;"
-            onclick="like_comm({{c.id}})"></i>
+            onclick="like_comm({{c.id}})"> </i>
           {% else %}
           <i
             class="fa-regular fa-heart"
@@ -32,9 +43,11 @@
           <span id="likes-comm-count-{{c.id}}" style="margin-left: 0.5ch;">
             {{ c.likes|length }}</span>
         </div>
-        <p class="small mb-0">
-          {{ c.body }}
-        </p>
+        <div class="col-sm-4 col-md-6">
+          <p class="small mb-0" style="overflow-wrap: break-word; word-wrap: break-word;">
+            {{ c.body }}
+          </p>
+        </div>
       </div>
       <div class="collapse" id="{{c.id}}">
         <br>
