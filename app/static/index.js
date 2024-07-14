@@ -62,3 +62,30 @@ function set_notification_count(n) {
   count.innerText = n;
   count.style.visibility = n ? 'visible' : 'hidden';
 }
+
+
+document.addEventListener("DOMContentLoaded", function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const anchor = window.location.hash.substring(1);
+  if (anchor) {
+      const targetElement = document.getElementById(anchor);
+      if (targetElement) {
+          if (anchor.startsWith('reply-')) {
+              const reply = document.getElementById(anchor);
+              if (reply) {
+                  const parentCommentId = reply.closest('.collapse').id.replace('replies-', '');
+                  const parentCollapse = document.getElementById('replies-' + parentCommentId);
+                  const parentToggle = document.querySelector(`[href="#replies-${parentCommentId}"]`);
+                  if (parentCollapse && parentToggle) {
+                      parentCollapse.classList.add('show');
+                      parentCollapse.addEventListener('shown.bs.collapse', function () {
+                          reply.scrollIntoView({ behavior: 'smooth' });
+                      });
+                  }
+              }
+          } else {
+              targetElement.scrollIntoView({ behavior: 'smooth' });
+          }
+      }
+  }
+});

@@ -8,7 +8,7 @@
             <div class="row">
                 <div class="col-4">
                     {% if user.profile_pic %}
-                        <img src=" {{ url_for('static', filename='images/' + current_user.profile_pic)}}" class="mx-auto d-block" alt="" style="width: 300px; height: 300px; border-radius: 12px;">
+                        <img src=" {{ url_for('static', filename='images/' + user.profile_pic)}}" class="mx-auto d-block" alt="" style="width: 300px; height: 300px; border-radius: 12px;">
                     {% else %}
                         <img src=" {{ url_for('static', filename='images/default-profile-icon.jpg')}}" class="mx-auto d-block" alt="" style="width: 300px; height: 300px; border-radius: 12px;">
                     {% endif %}

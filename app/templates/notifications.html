@@ -1,12 +1,19 @@
 {% extends "base.html" %}
 
 {% block content %}
+    <style>
+      .card-body {
+          overflow-wrap: break-word; 
+          word-break: break-word;
+      }
+    </style>
     <h1>Notifications</h1>
     <br>
     {% if notifications %}
+      <div id="notifications-container">
         {% for n in notifications %}
-        <div class="col-8">
-        <div class="card mb-3">
+        <div class="col-8 notification-item" data-id="{{ n.id }}">
+        <div class="card {% if n.status == False %}border-dark{% endif %} mb-3">
             <div class="card-body">
               <div class="d-flex flex-start">
                 {% if n.sender.profile_pic %}
@@ -15,23 +22,34 @@
                     <img src=" {{ url_for('static', filename='images/default-profile-icon.jpg')}}" class="rounded-circle shadow-1-strong me-3" width="40" height="40">
                 {% endif %}
                 <div class="w-100">
-                  <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="text-primary fw-bold mb-0">
-                      {{ n.sender.username }}
-                      {% if n.category == "like_post" %}
-                      <span class="text-body ms-2">liked your post "{{ n.post.title }}"</span>
-                      {% endif %}
+                  <div class="d-flex justify-content-between align-items-center mb-3" style="word-wrap: break-word;">
+                    <div class="col-9">
+                    <h6 class="text-primary mb-0">
+                        <a href="#" class="link-dark link-offset-2 link-underline link-underline-opacity-0 stretched-link notification-link" data-id="{{ n.id }}">
+                            <span style="color: #007bff;">{{ n.sender.username }}</span>
+                            {% if n.category == "like_post" %}
+                            <span class="text-body ms-2">liked your post <span class="fw-bold">{{ n.post.title }}"</span></span>
+                            {% elif n.category == "comment_post" %}
+                            <span class="text-body ms-2">commented <span class="fw-bold">"{{n.comment.body}}"</span> on your post <span class="fw-bold">"{{ n.post.title }}"</span></span>
+                            {% elif n.category == "reply_comment" %}
+                            <span class="text-body ms-2">replied <span class="fw-bold">"{{n.comment.body}}"</span> to your comment <span class="fw-bold">"{{ n.reply_comment.body }}"</span> on the post <span class="fw-bold">"{{ n.post.title }}"</span></span>
+                            {% elif n.category == "like_comment" %}
+                            <span class="text-body ms-2">liked your comment <span class="fw-bold">"{{ n.comment.body }}"</span> on the post <span class="fw-bold">"{{ n.post.title }}"</span></span>
+                            {% endif %}
+                        </a>
                     </h6>
-                    <p class="mb-0">{{ moment(n.timestamp).fromNow() }}</p>
+                    </div>
+                    <div class="col-2">
+                    <p>{{ moment(n.timestamp).fromNow() }}</p>
+                    </div>
                   </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-         
+          </div>   
         {% endfor %}
-
+      </div>
         <nav aria-label="Post navigation">
             <ul class="pagination">
                 <li class="page-item{% if not prev_url %} disabled{% endif %}">
@@ -50,5 +68,47 @@
     {% else %}
         <h5> There are no notifications. </h5>
     {% endif %}
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+          const notificationElements = document.querySelectorAll('.notification-item');
+          const notificationIds = Array.from(notificationElements).map(el => el.dataset.id);
+  
+          if (notificationIds.length > 0) {
+              fetch("{{ url_for('mark_notifications_as_read') }}", {
+                  method: "POST",
+                  headers: {
+                      "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({ notification_ids: notificationIds })
+              }).then(response => {
+                  if (response.ok) {
+                      console.log("Notifications marked as read");
+                  } else {
+                      console.error("Failed to mark notifications as read");
+                  }
+              });
+          }
+      });
+
+
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.notification-link').forEach(function(link) {
+            link.addEventListener('click', function(event) {
+                event.preventDefault();
+                var notificationId = this.getAttribute('data-id');
+                fetch('/generate_notification_url/' + notificationId)
+                    .then(response => response.json())
+                    .then(data => {
+                        window.location.href = data.url;
+                    })
+                    .catch(error => console.error('Error:', error));
+            });
+        });
+    });
+
+
+  </script>
 
 {% endblock %}

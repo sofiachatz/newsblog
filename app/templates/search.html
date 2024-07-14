@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>Search Results for "{{ query }}": {{total}}</h1>
+    <h1>Search Results: "{{ query }}" was mentioned {{total}} {% if total == 1 %}time{% else %}times {% endif %}</h1>
     {% for post in posts %}
         {% include '_post.html' %}
     {% endfor %}

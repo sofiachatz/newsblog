@@ -25,7 +25,10 @@
   clear: both;
 }
 
-
+.card-body {
+          overflow-wrap: break-word; 
+          word-break: break-word;
+      }
 
 /* Responsive columns - one column layout (vertical) on small screens */
 @media screen and (max-width: 600px) {
@@ -80,7 +83,7 @@
     <hr>
     <br>
     {% if post.post_pic %}
-    <img src=" {{ url_for('static', filename='images/' + post.post_pic)}}" width="600" height="400">
+    <img src=" {{ url_for('static', filename='images/' + post.post_pic)}}" width="600" height="auto">
     <br>
     {% endif %}  
     <br> 
@@ -101,7 +104,7 @@
   {% endif %}
 </div>
 
-<section class="gradient-custom">
+<section class="gradient-custom" id="comment_section">
   <div class="container my-5 py-5">
     <div class="row d-flex justify-content-left">
       <div class="col-md-1">
@@ -170,7 +173,9 @@
             <div class="row">
               <div class="col">
                 {% for c in comments %}
+                <div class="col-10" id="comment-{{ c.id }}">
                   {% include '_comment.html' %}
+                </div>
                 {% endfor %}
                 <nav aria-label="Comment navigation">
                   <ul class="pagination">

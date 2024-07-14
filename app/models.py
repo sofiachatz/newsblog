@@ -1,5 +1,6 @@
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone
+from sqlalchemy import DateTime
 from typing import Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
@@ -81,15 +82,15 @@ class User(UserMixin, db.Model):
     last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(
         default=lambda: datetime.now(timezone.utc))
     profile_pic: so.Mapped[Optional[str]] = so.mapped_column(sa.String())
-    likes = db.relationship('Like', backref='user', passive_deletes=True)
+    likes = db.relationship('Like', backref='user', cascade='all, delete-orphan', passive_deletes=True)
     liked_posts: so.Mapped[Optional[bool]] = so.mapped_column(unique=False, default=False)
-    comments = db.relationship('Comment', back_populates='author', passive_deletes=True)
-    likes_comments = db.relationship('Like_Comment', backref='user', passive_deletes=True)
+    comments = db.relationship('Comment', back_populates='author', cascade='all, delete-orphan', passive_deletes=True)
+    likes_comments = db.relationship('Like_Comment', backref='user', cascade='all, delete-orphan', passive_deletes=True)
     last_notification_read_time: so.Mapped[Optional[datetime]]
     notifications_sent: so.WriteOnlyMapped['Notification'] = so.relationship(
-        foreign_keys='Notification.sender_id', back_populates='sender', passive_deletes=True)
+        foreign_keys='Notification.sender_id', back_populates='sender', cascade='all, delete-orphan', passive_deletes=True)
     notifications_received: so.WriteOnlyMapped['Notification'] = so.relationship(
-        foreign_keys='Notification.recipient_id', back_populates='recipient', passive_deletes=True)
+        foreign_keys='Notification.recipient_id', back_populates='recipient', cascade='all, delete-orphan', passive_deletes=True)
     notification_calls: so.WriteOnlyMapped['Notification_Call'] = so.relationship(
         back_populates='user')
 
@@ -151,10 +152,10 @@ class Post(SearchableMixin, db.Model):
     sports: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer())
     viral: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer())
     post_pic: so.Mapped[Optional[str]] = so.mapped_column(sa.String())
-    likes = db.relationship('Like', backref='post', passive_deletes=True)
-    comments = db.relationship('Comment', backref='post', passive_deletes=True)
+    likes = db.relationship('Like', backref='post', cascade='all, delete-orphan', passive_deletes=True)
+    comments = db.relationship('Comment', backref='post', cascade='all, delete-orphan', passive_deletes=True)
     notifications: so.WriteOnlyMapped['Notification'] = so.relationship(
-        foreign_keys='Notification.post_id', back_populates='post', passive_deletes=True)
+        foreign_keys='Notification.post_id', back_populates='post', cascade='all, delete-orphan', passive_deletes=True)
 
     def __repr__(self):
         return '<Post {}>'.format(self.title)
@@ -176,14 +177,15 @@ class Comment(db.Model):
     timestamp: so.Mapped[datetime] = so.mapped_column(
         index=True, default=lambda: datetime.now(timezone.utc))
     parent_id: so.Mapped[Optional[int]] = so.mapped_column(sa.ForeignKey('comment.id', ondelete="CASCADE"), nullable=True)
-    replies = db.relationship('Comment', backref=db.backref('parent', remote_side=[id]), lazy='dynamic', passive_deletes=True)
-    reply_to: so.Mapped[Optional[str]] = so.mapped_column(sa.String(64))
+    replies = db.relationship('Comment', backref=db.backref('parent', remote_side=[id]), lazy='dynamic', cascade='all, delete-orphan', passive_deletes=True)
+    reply_to: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer())
     author: so.Mapped[User] = so.relationship(back_populates='comments')
-    likes = db.relationship('Like_Comment', backref='comment', passive_deletes=True)
-    num_likes: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer())
+    likes = db.relationship('Like_Comment', backref='comment', cascade='all, delete-orphan', passive_deletes=True)
+    num_likes: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer(), default=0)
     notifications: so.WriteOnlyMapped['Notification'] = so.relationship(
-        foreign_keys='Notification.comment_id', back_populates='comment', passive_deletes=True)
-
+        foreign_keys='Notification.comment_id', back_populates='comment', cascade='all, delete-orphan', passive_deletes=True, single_parent=True)
+    notifications_replies: so.WriteOnlyMapped['Notification'] = so.relationship(
+        foreign_keys='Notification.reply_comment_id', back_populates='reply_comment', cascade='all, delete-orphan', passive_deletes=True, single_parent=True)
 
 class Like_Comment(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
@@ -199,9 +201,11 @@ class Notification(db.Model):
     sender_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id, ondelete="CASCADE"), index=True)
     post_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Post.id, ondelete="CASCADE"), index=True)
     comment_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Comment.id, ondelete="CASCADE"), index=True, nullable=True)
+    reply_comment_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Comment.id, ondelete="CASCADE"), index=True, nullable=True)
     timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
     category: so.Mapped[str] = so.mapped_column(sa.String(15))
     status: so.Mapped[Optional[bool]] = so.mapped_column(unique=False, default=False)
+    status_changed_at: so.Mapped[Optional[datetime]] = so.mapped_column(DateTime(timezone=True), nullable=True)
     sender: so.Mapped[User] = so.relationship(
         foreign_keys='Notification.sender_id',
         back_populates='notifications_sent')
@@ -213,7 +217,11 @@ class Notification(db.Model):
         back_populates='notifications')
     comment: so.Mapped[Comment] = so.relationship(
         foreign_keys='Notification.comment_id',
-        back_populates='notifications')
+        back_populates='notifications', cascade='all, delete-orphan', passive_deletes=True, single_parent=True)
+    reply_comment: so.Mapped[Comment] = so.relationship(
+        foreign_keys='Notification.reply_comment_id',
+        back_populates='notifications_replies', cascade='all, delete-orphan', passive_deletes=True, single_parent=True)
+
 
 
 class Notification_Call(db.Model):

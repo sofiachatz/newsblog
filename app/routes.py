@@ -201,10 +201,10 @@ def create_post():
                             form=form)
     except ElasticConnectionError:
         error="Connection error!"
-        return render_template('error.html', error=error)
+        return render_template('error.html', title='Error', error=error)
     except ConnectionTimeoutError:
         error="Connection Timeout error!"
-        return render_template('error.html', error=error)
+        return render_template('error.html', title='Error', error=error)
 
 
 
@@ -228,25 +228,60 @@ def post(id):
     if form.validate_on_submit():
         if not authenticated:
             error="Login to comment."
-            return render_template('error.html', error=error)
-        comment = Comment(body=form.comment.data, user_id=current_user.id, post_id=post.id)
+            return render_template('error.html', title='Error', error=error)
+        comment = Comment(body=form.comment.data, user_id=current_user.id, post_id=post.id)      
         db.session.add(comment)
         db.session.commit()
-        return redirect(url_for('post', id=post.id))
+        if post.author != current_user:
+            notification = Notification(sender_id=current_user.id, recipient_id=post.user_id, post_id=post.id, comment_id=comment.id, category="comment_post")
+            db.session.add(notification)
+            db.session.commit()
+            post.author.add_notification_call('unread_notification_count', post.author.unread_notification_count())
+            db.session.commit()
+        url = generate_url(
+                post.id, comment.id, app.config['POSTS_PER_PAGE'], is_reply=False)
+        return redirect(url)
     if form2.validate_on_submit():
         if not authenticated:
             error="Login to comment."
-            return render_template('error.html', error=error)
+            return render_template('error.html', title='Error', error=error)
         parent_id = form2.parent_id.data
         reply_to = None
         comment = db.first_or_404(sa.select(Comment).where(Comment.id == parent_id))
         if comment.parent_id:
-            reply_to = comment.author.username
+            reply_to = comment.id
             parent_id = comment.parent_id
         comment = Comment(body=form2.reply.data, user_id=current_user.id, post_id=post.id, parent_id=parent_id, reply_to=reply_to)
         db.session.add(comment)
         db.session.commit()
-        return redirect(url_for('post', id=post.id))
+        if post.author != current_user:
+            notification = Notification(sender_id=current_user.id, recipient_id=post.user_id, post_id=post.id, comment_id=comment.id, category="comment_post")
+            db.session.add(notification)
+            db.session.commit()
+            post.author.add_notification_call('unread_notification_count', post.author.unread_notification_count())
+            db.session.commit()
+        query = sa.select(User).join(Comment).where(Comment.id==comment.parent_id)
+        recipient = db.session.scalars(query).first()
+        if recipient != current_user:
+            query = sa.select(User).join(Comment).where(Comment.id==comment.parent_id)
+            recipient = db.session.scalars(query).first()
+            notification = Notification(sender_id=current_user.id, recipient_id=recipient.id, post_id=post.id, comment_id=comment.id, reply_comment_id=comment.parent_id, category="reply_comment")
+            db.session.add(notification)
+            db.session.commit()
+            recipient.add_notification_call('unread_notification_count', recipient.unread_notification_count())
+            db.session.commit()
+        if comment.reply_to:
+            query = sa.select(User).join(Comment).where(Comment.id==comment.reply_to)
+            recipient = db.session.scalars(query).first()
+            if recipient != current_user:
+                notification = Notification(sender_id=current_user.id, recipient_id=recipient.id, post_id=post.id, comment_id=comment.id, reply_comment_id=comment.reply_to, category="reply_comment")
+                db.session.add(notification)
+                db.session.commit()
+                recipient.add_notification_call('unread_notification_count', recipient.unread_notification_count())
+                db.session.commit()
+        url = generate_url(
+                post.id, comment.id, app.config['POSTS_PER_PAGE'], is_reply=True)
+        return redirect(url)
     query = sa.select(Post).where((Post.media==1)&(Post.id!=post.id)).order_by(Post.timestamp.desc())
     posts_media1 = db.session.scalars(query).all()[:4]
     posts_media2 = db.session.scalars(query).all()[5:8]
@@ -271,14 +306,15 @@ def post(id):
                         per_page=app.config['POSTS_PER_PAGE'], error_out=False)
     query = sa.select(Comment).where((Comment.post_id==post.id)&(Comment.parent_id!=None)).order_by(Comment.timestamp)
     replies =  db.session.scalars(query).all()
-    next_url = url_for('post', id=post.id, page=comments.next_num) \
+    next_url = url_for('post', id=post.id, page=comments.next_num, _anchor='comment_section') \
         if comments.has_next else None
-    prev_url = url_for('post', id=post.id, page=comments.prev_num) \
+    prev_url = url_for('post', id=post.id, page=comments.prev_num, _anchor='comment_section') \
         if comments.has_prev else None
-    return render_template('post.html', post=post, posts_media1=posts_media1, posts_media2=posts_media2, posts_news1=posts_news1, posts_news2=posts_news2, 
+    all_comments = Comment.query.filter_by(post_id=post.id).all()
+    return render_template('post.html', title=post.title, post=post, posts_media1=posts_media1, posts_media2=posts_media2, posts_news1=posts_news1, posts_news2=posts_news2, 
                             posts_sports1=posts_sports1, posts_sports2=posts_sports2, posts_showbiz1=posts_showbiz1, posts_showbiz2=posts_showbiz2,
                             posts_viral1=posts_viral1, posts_viral2=posts_viral2, current_user=current_user, trending=trending, comments=comments, replies=replies, 
-                            form=form, form2=form2, authenticated=authenticated, next_url=next_url, prev_url=prev_url)
+                            form=form, form2=form2, authenticated=authenticated, next_url=next_url, prev_url=prev_url, all_comments=all_comments)
 
 
 @app.route('/edit_post/<id>', methods=['GET', 'POST'])
@@ -343,7 +379,7 @@ def edit_post(id):
                             form=form, id=post.id)
     else:
         error="You cannot edit the post of another user!"
-        return render_template('error.html', error=error)
+        return render_template('error.html', title='Error', error=error)
 
 
 
@@ -358,7 +394,7 @@ def delete_post(id):
         return redirect(url_for('profile', username=current_user.username))
     else:
         error="You cannot delete the post of another user!"
-        return render_template('error.html', error=error)
+        return render_template('error.html', title='Error', error=error)
 
 
 @app.route('/reset_password_request', methods=['GET', 'POST'])
@@ -390,7 +426,7 @@ def reset_password(token):
         db.session.commit()
         flash('Your password has been reset.')
         return redirect(url_for('login'))
-    return render_template('reset_password.html', form=form)
+    return render_template('reset_password.html', title='Reset Password', form=form)
 
 
 @app.route('/media')
@@ -466,7 +502,7 @@ def search():
     posts, total = Post.search(g.search_form.q.data, page, app.config['POSTS_PER_PAGE'])
     if total == -1:
         error="Connection error!"
-        return render_template('error.html', error=error)
+        return render_template('error.html', title='Error', error=error)
     else:
         next_url = url_for('main.search', q=g.search_form.q.data, page=page + 1) \
             if total > page * app.config['POSTS_PER_PAGE'] else None
@@ -490,9 +526,10 @@ def like_post(id):
             db.session.delete(notification)
     else:
         like = Like(user_id=current_user.id, post_id=post.id)
-        notification = Notification(sender_id=current_user.id, recipient_id=post.user_id, post_id=post.id, category="like_post")
         db.session.add(like)
-        db.session.add(notification)
+        if post.author != current_user:
+            notification = Notification(sender_id=current_user.id, recipient_id=post.user_id, post_id=post.id, category="like_post")        
+            db.session.add(notification)
     db.session.commit()
     post.author.add_notification_call('unread_notification_count', post.author.unread_notification_count())
     db.session.commit()
@@ -504,13 +541,19 @@ def like_post(id):
 def delete_comment(id):
     comment = db.first_or_404(sa.select(Comment).where(Comment.id == id))
     if comment.author == current_user:
+        if comment.parent_id:
+            url = generate_url(
+                    comment.post_id, comment.parent_id, app.config['POSTS_PER_PAGE'], is_reply=False)
+        else:
+            url = generate_url(
+                    comment.post_id, comment.id, app.config['POSTS_PER_PAGE'], is_reply=False, delete_comment=True)
         db.session.delete(comment)       
         db.session.commit()
         flash('Your comment has been deleted.')
-        return redirect(url_for('post', id=comment.post_id))
+        return redirect(url)
     else:
         error="You cannot delete the comment of another user!"
-        return render_template('error.html', error=error)
+        return render_template('error.html', title='Error', error=error)
 
 
 @app.route('/like_comment/<id>', methods=['POST'])
@@ -521,11 +564,25 @@ def like_comment(id):
     like = db.session.scalars(query).first()
     if like:
         db.session.delete(like)
+        db.session.commit()
+        comment.num_likes = len(comment.likes)
+        db.session.commit()
+        query = sa.select(Notification).where((Notification.sender_id==current_user.id)&(Notification.recipient_id==comment.user_id)&(Notification.comment_id==comment.id)&(Notification.category=="like_comment"))
+        notification = db.session.scalars(query).first()
+        if notification:
+            db.session.delete(notification)
+            db.session.commit()
     else:
         like = Like_Comment(user_id=current_user.id, comment_id=comment.id)
         db.session.add(like)
-    db.session.commit()
-    comment.num_likes = len(comment.likes)
+        db.session.commit()
+        comment.num_likes = len(comment.likes)
+        db.session.commit()
+        if comment.author != current_user:
+            notification = Notification(sender_id=current_user.id, recipient_id=comment.user_id, comment_id=comment.id, post_id=comment.post_id, category="like_comment")        
+            db.session.add(notification)
+            db.session.commit()
+    comment.author.add_notification_call('unread_notification_count', comment.author.unread_notification_count())
     db.session.commit()
     return jsonify({"likes": len(comment.likes), "liked": current_user.id in map(lambda x: x.user_id, comment.likes)})
 
@@ -533,12 +590,23 @@ def like_comment(id):
 @app.route('/notifications')
 @login_required
 def notifications():
+
+    # Delete old notifications first
+    time_threshold = datetime.now(timezone.utc) - timedelta(minutes=5)
+    notifications_to_delete = Notification.query.filter(
+        Notification.recipient_id == current_user.id,
+        Notification.status == True,
+        Notification.status_changed_at < time_threshold
+    ).all()
+    for notification in notifications_to_delete:
+        db.session.delete(notification)
+    db.session.commit()
+
     current_user.last_notification_read_time = datetime.now(timezone.utc)
     current_user.add_notification_call('unread_notification_count', 0)
     db.session.commit()
     page = request.args.get('page', 1, type=int)
-    query = current_user.notifications_received.select().order_by(
-        Notification.timestamp.desc())
+    query = current_user.notifications_received.select().order_by(Notification.timestamp.desc())  
     notifications = db.paginate(query, page=page,
                            per_page=app.config['POSTS_PER_PAGE'],
                            error_out=False)
@@ -546,8 +614,63 @@ def notifications():
         if notifications.has_next else None
     prev_url = url_for('notifications', page=notifications.prev_num) \
         if notifications.has_prev else None
-    return render_template('notifications.html', notifications=notifications.items,
+    return render_template('notifications.html', title='Notifications', notifications=notifications.items,
                            next_url=next_url, prev_url=prev_url)
+
+
+@app.route('/mark_notifications_as_read', methods=['POST'])
+@login_required
+def mark_notifications_as_read():
+    notification_ids = request.json.get('notification_ids', [])
+    if notification_ids:
+        now = datetime.now(timezone.utc)
+        db.session.query(Notification).filter(
+            Notification.id.in_(notification_ids),
+            Notification.status == False
+        ).update({"status": True, "status_changed_at": now}, synchronize_session='fetch')
+        db.session.commit()
+    return jsonify(success=True)
+
+
+
+
+def generate_url(post_id, comment_id, comments_per_page, is_reply=False, delete_comment=False):
+        if comment_id:
+            comment = Comment.query.get(comment_id)
+            query = sa.select(Comment).where((Comment.post_id==comment.post_id)&(Comment.parent_id==None)).order_by(Comment.num_likes.desc()).order_by(Comment.timestamp.desc())
+            comments = db.session.scalars(query).all()
+            comments_before = 0
+            for c in comments:
+                if (c.id == comment_id) or (c.id == comment.parent_id):
+                    break
+                else:
+                    comments_before = comments_before + 1
+            page = (comments_before // comments_per_page) + 1
+            if delete_comment:
+                anchor = 'comment_section'
+            else:
+                anchor = f'reply-{comment_id}' if is_reply else f'comment-{comment_id}'
+            return url_for('post', id=post_id, page=page, _anchor=anchor)
+        else:
+            return url_for('post', id=post_id)
+
+
+
+@app.route('/generate_notification_url/<int:notification_id>')
+@login_required
+def generate_notification_url(notification_id):
+    notification = Notification.query.get_or_404(notification_id)
+    if notification.comment:
+        if notification.comment.parent_id:
+            url = generate_url(
+                notification.post_id, notification.comment_id, app.config['POSTS_PER_PAGE'], is_reply=True)
+        else:
+            url = generate_url(
+                notification.post_id, notification.comment_id, app.config['POSTS_PER_PAGE'], is_reply=False)
+    else:
+        url = generate_url(
+            notification.post_id, notification.comment_id, app.config['POSTS_PER_PAGE'], is_reply=False)
+    return jsonify({'url': url})
 
 
 

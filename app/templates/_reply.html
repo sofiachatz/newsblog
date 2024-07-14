@@ -1,4 +1,4 @@
-<div class="d-flex flex-start mt-4">
+<div id="reply-{{ r.id }}" class="d-flex flex-start mt-4">
     {% if r.author.profile_pic %}
         <img src=" {{ url_for('static', filename='images/' + r.author.profile_pic)}}" class="rounded-circle shadow-1-strong me-3" width="65" height="65">
     {% else %}
@@ -8,7 +8,7 @@
       <div>
         <div class="d-flex align-items-center">
           <p class="mb-1">
-            <a href="{{ url_for('profile', username=r.author.username) }}" class="link-offset-2 link-underline link-underline-opacity-0">{{ r.author.username }}</a><span class="small">- {{ moment(r.timestamp).format('LLL') }}</span>
+            <a href="{{ url_for('profile', username=r.author.username) }}" class="link-offset-2 link-underline link-underline-opacity-0">{{ r.author.username }}</a><span class="small">- {{ moment(r.timestamp).fromNow() }}</span>
           </p>
           {% if r.author == current_user %}
           <a href="{{ url_for('delete_comment', id=r.id) }}" class="link-dark link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover"><i class="bi bi-trash3" style="margin-left: 1ch;"></i></a>
@@ -33,7 +33,13 @@
             {{ r.likes|length }}</span>
         </div>
         <p class="small mb-0">
-            {% if r.reply_to %}<a href="{{ url_for('profile', username=r.reply_to) }}" class="link-offset-2 link-underline link-underline-opacity-0">{{ r.reply_to }}</a>{% endif %} {{ r.body }}
+            {% if r.reply_to %}
+              {% set replied_comment = all_comments | selectattr('id', 'equalto', r.reply_to) | first %}
+              {% if replied_comment %}
+              <a href="{{ url_for('profile', username=replied_comment.author.username) }}" class="link-offset-2 link-underline link-underline-opacity-0">{{ replied_comment.author.username }}</a> 
+              {% endif %}
+            {% endif %}
+            {{ r.body }}
         </p>
       </div>
     </div>
