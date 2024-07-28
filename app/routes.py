@@ -229,7 +229,7 @@ def post(id):
         if not authenticated:
             error="Login to comment."
             return render_template('error.html', title='Error', error=error)
-        comment = Comment(body=form.comment.data, user_id=current_user.id, post_id=post.id)      
+        comment = Comment(body=form.comment.data, user_id=current_user.id, post_id=post.id)            
         db.session.add(comment)
         db.session.commit()
         if post.author != current_user:

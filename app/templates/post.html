@@ -47,6 +47,27 @@
   float: right;
 }
 
+.container-match {
+  max-width: 1000px;
+  height: auto;
+  display: flex;
+  align-items: left;
+  justify-content: left;
+}
+
+.card {
+  max-width: 1000px;
+  height: auto;
+}
+
+.container-inner {
+  max-width: 1000px;
+  height: auto;
+  overflow:visible;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+ 
 </style>
 
 <div class="row g-5">
@@ -137,8 +158,10 @@
     <br>
     <div class="row d-flex justify-content-left">
       <div class="col-md-12 col-lg-10 col-xl-8">
+        <div class="container container-match">
         <div class="card">
           <div class="card-body p-4">
+            <div class="container-inner">
             <h3 class="text-left mb-4 pb-2">Comment Section</h3>
             {% if authenticated %}
               <div class="d-flex flex-start w-100">
@@ -193,7 +216,9 @@
                 </nav>
               </div>
             </div>
+            </div>
           </div>
+        </div>
         </div>
       </div>
     </div>

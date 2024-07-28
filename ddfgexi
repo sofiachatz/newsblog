@@ -1,0 +1,83 @@
+[33mcommit e1ef5767d2b4c96ee7f75dc90573118b049eebb3[m[33m ([m[1;36mHEAD[m[33m, [m[1;31mnewsblog/master[m[33m)[m
+Author: Sofia Chatz <shatzistamati16@gmail.com>
+Date:   Sun Jun 23 20:37:03 2024 +0300
+
+    user notifications 1/2
+
+[33mcommit d118bc6b72e9b14d61392d63d77a3ff20efabd50[m
+Author: Sofia Chatz <shatzistamati16@gmail.com>
+Date:   Wed Jun 19 20:56:25 2024 +0300
+
+    comment section complete
+
+[33mcommit 1f0d85e08b67ab7936ee5326a05b9b925a5d97f6[m
+Author: Sofia Chatz <shatzistamati16@gmail.com>
+Date:   Sat Jun 8 21:33:48 2024 +0300
+
+    comment section
+
+[33mcommit 0a96cb99d8b6813de48db027344a8276510c6c49[m
+Author: Sofia Chatz <shatzistamati16@gmail.com>
+Date:   Sat Jun 1 22:57:02 2024 +0300
+
+    add delete comment
+
+[33mcommit d5af77f4763c3c03d310a7e638537391c5936a92[m
+Author: Sofia Chatz <shatzistamati16@gmail.com>
+Date:   Wed May 15 19:45:23 2024 +0300
+
+    Liked Posts
+
+[33mcommit e03fda4086332d3e83d72143cb189cda133d2de8[m
+Author: Sofia Chatz <shatzistamati16@gmail.com>
+Date:   Mon May 13 18:56:47 2024 +0300
+
+    Trending
+
+[33mcommit 440aed9d3e5ff663f77907d53e3f2e6593c93112[m
+Author: Sofia Chatz <shatzistamati16@gmail.com>
+Date:   Tue Apr 30 22:43:35 2024 +0300
+
+    likes
+
+[33mcommit 578be886e824b449363e7b83bd47379ee8094a3f[m
+Author: Sofia Chatz <shatzistamati16@gmail.com>
+Date:   Sun Apr 28 12:59:03 2024 +0300
+
+    Elasticsearch
+
+[33mcommit 442d89d554b5c74c571c290b574fc7e9b2d48e48[m[33m ([m[1;32mmaster[m[33m)[m
+Author: Sofia Chatz <shatzistamati16@gmail.com>
+Date:   Wed Apr 17 18:46:03 2024 +0300
+
+    Checkbox in new post
+
+[33mcommit c1cc1f4372568fc520a3eab76a3cbb71c36e2b6c[m
+Author: Sofia Chatz <shatzistamati16@gmail.com>
+Date:   Wed Apr 17 18:36:54 2024 +0300
+
+    Back to default pic with javascript
+
+[33mcommit 7999de647f191c67be2980091ee7623c83137d0b[m
+Author: Sofia Chatz <shatzistamati16@gmail.com>
+Date:   Tue Apr 9 21:58:59 2024 +0300
+
+    Category pages
+
+[33mcommit 96bf90caaf9024b7ae11717179cd6185c993af1d[m
+Author: Sofia Chatz <shatzistamati16@gmail.com>
+Date:   Tue Apr 9 19:31:33 2024 +0300
+
+    post recommendations in post.html
+
+[33mcommit 2389625c1f3d9cf3437c2485c60ca21ec542190c[m
+Author: Sofia Chatz <shatzistamati16@gmail.com>
+Date:   Mon Apr 8 23:12:48 2024 +0300
+
+    Second commit
+
+[33mcommit ca252c22448d6de1b915290c9b2d3baf5e293e9d[m
+Author: Sofia Chatz <shatzistamati16@gmail.com>
+Date:   Mon Apr 8 23:06:28 2024 +0300
+
+    First Commit
