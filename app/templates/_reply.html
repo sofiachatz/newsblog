@@ -32,7 +32,8 @@
           <span id="likes-comm-count-{{r.id}}" style="margin-left: 0.5ch;">
             {{ r.likes|length }}</span>
         </div>
-        <p class="small mb-0">
+        <div class="col-sm-4 col-md-7">
+          <p class="small mb-0" style="overflow-wrap: break-word; word-wrap: break-word;">
             {% if r.reply_to %}
               {% set replied_comment = all_comments | selectattr('id', 'equalto', r.reply_to) | first %}
               {% if replied_comment %}
@@ -40,7 +41,8 @@
               {% endif %}
             {% endif %}
             {{ r.body }}
-        </p>
+          </p>
+        </div>
       </div>
     </div>
 </div>

@@ -32,7 +32,7 @@
                             {% elif n.category == "comment_post" %}
                             <span class="text-body ms-2">commented <span class="fw-bold">"{{n.comment.body}}"</span> on your post <span class="fw-bold">"{{ n.post.title }}"</span></span>
                             {% elif n.category == "reply_comment" %}
-                            <span class="text-body ms-2">replied <span class="fw-bold">"{{n.comment.body}}"</span> to your comment <span class="fw-bold">"{{ n.reply_comment.body }}"</span> on the post <span class="fw-bold">"{{ n.post.title }}"</span></span>
+                            <span class="text-body ms-2">replied <span class="fw-bold">"{{n.comment.body}}"</span> to your comment <span class="fw-bold">"{{ n.reply_comment.body }}"</span> on {% if n.post.author == current_user %}your {% else %}the {% endif %}post <span class="fw-bold">"{{ n.post.title }}"</span></span>
                             {% elif n.category == "like_comment" %}
                             <span class="text-body ms-2">liked your comment <span class="fw-bold">"{{ n.comment.body }}"</span> on the post <span class="fw-bold">"{{ n.post.title }}"</span></span>
                             {% endif %}

@@ -254,30 +254,29 @@ def post(id):
         comment = Comment(body=form2.reply.data, user_id=current_user.id, post_id=post.id, parent_id=parent_id, reply_to=reply_to)
         db.session.add(comment)
         db.session.commit()
-        if post.author != current_user:
-            notification = Notification(sender_id=current_user.id, recipient_id=post.user_id, post_id=post.id, comment_id=comment.id, category="comment_post")
-            db.session.add(notification)
-            db.session.commit()
-            post.author.add_notification_call('unread_notification_count', post.author.unread_notification_count())
-            db.session.commit()
-        query = sa.select(User).join(Comment).where(Comment.id==comment.parent_id)
-        recipient = db.session.scalars(query).first()
-        if recipient != current_user:
-            query = sa.select(User).join(Comment).where(Comment.id==comment.parent_id)
-            recipient = db.session.scalars(query).first()
-            notification = Notification(sender_id=current_user.id, recipient_id=recipient.id, post_id=post.id, comment_id=comment.id, reply_comment_id=comment.parent_id, category="reply_comment")
-            db.session.add(notification)
-            db.session.commit()
-            recipient.add_notification_call('unread_notification_count', recipient.unread_notification_count())
-            db.session.commit()
+        recipient1 = None
         if comment.reply_to:
             query = sa.select(User).join(Comment).where(Comment.id==comment.reply_to)
-            recipient = db.session.scalars(query).first()
-            if recipient != current_user:
-                notification = Notification(sender_id=current_user.id, recipient_id=recipient.id, post_id=post.id, comment_id=comment.id, reply_comment_id=comment.reply_to, category="reply_comment")
+            recipient1 = db.session.scalars(query).first()
+            if recipient1 != current_user:
+                notification = Notification(sender_id=current_user.id, recipient_id=recipient1.id, post_id=post.id, comment_id=comment.id, reply_comment_id=comment.reply_to, category="reply_comment")
                 db.session.add(notification)
                 db.session.commit()
-                recipient.add_notification_call('unread_notification_count', recipient.unread_notification_count())
+                recipient1.add_notification_call('unread_notification_count', recipient1.unread_notification_count())
+                db.session.commit()
+        query = sa.select(User).join(Comment).where(Comment.id==comment.parent_id)
+        recipient2 = db.session.scalars(query).first()
+        if recipient2 != current_user and recipient2 != recipient1:
+            notification = Notification(sender_id=current_user.id, recipient_id=recipient2.id, post_id=post.id, comment_id=comment.id, reply_comment_id=comment.parent_id, category="reply_comment")
+            db.session.add(notification)
+            db.session.commit()
+            recipient2.add_notification_call('unread_notification_count', recipient2.unread_notification_count())
+            db.session.commit()
+        if post.author != current_user and post.author != recipient2 and (recipient1 is None or post.author != recipient1):
+                notification = Notification(sender_id=current_user.id, recipient_id=post.user_id, post_id=post.id, comment_id=comment.id, category="comment_post")
+                db.session.add(notification)
+                db.session.commit()
+                post.author.add_notification_call('unread_notification_count', post.author.unread_notification_count())
                 db.session.commit()
         url = generate_url(
                 post.id, comment.id, app.config['POSTS_PER_PAGE'], is_reply=True)
@@ -615,7 +614,7 @@ def notifications():
     prev_url = url_for('notifications', page=notifications.prev_num) \
         if notifications.has_prev else None
     return render_template('notifications.html', title='Notifications', notifications=notifications.items,
-                           next_url=next_url, prev_url=prev_url)
+                           next_url=next_url, prev_url=prev_url, current_user=current_user)
 
 
 @app.route('/mark_notifications_as_read', methods=['POST'])
