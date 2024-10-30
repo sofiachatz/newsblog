@@ -10,7 +10,7 @@
         }
 </style>
 <div class="col" id="column1">
-  {% if c.author.profile_pic %}
+  {% if c.author and c.author.profile_pic %}
     <img src=" {{ url_for('static', filename='images/' + c.author.profile_pic)}}" class="rounded-circle shadow-1-strong me-3" width="65" height="65">
   {% else %}
     <img src=" {{ url_for('static', filename='images/default-profile-icon.jpg')}}" class="rounded-circle shadow-1-strong me-3"width="65" height="65">
@@ -19,8 +19,12 @@
       <div>
         <div class="d-flex align-items-center">
           <p class="mb-1">
-            <a href="{{ url_for('profile', username=c.author.username) }}" class="link-offset-2 link-underline link-underline-opacity-0">{{ c.author.username }}</a><span class="small">- {{ moment(c.timestamp).fromNow() }}</span>
-          </p>
+          {% if c.author %}
+            <a href="{{ url_for('profile', username=c.author.username) }}" class="link-offset-2 link-underline link-underline-opacity-0">{{ c.author.username }}</a>
+          {% else %}
+            {{ c.username }} <span style="color: red;">(Deleted User)</span>
+          {% endif %}
+          <span class="small">- {{ moment(c.timestamp).fromNow() }}</span></p>
           {% if c.author == current_user %}
             <a href="{{ url_for('delete_comment', id=c.id) }}" class="link-dark link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover"><i class="bi bi-trash3" style="margin-left: 1ch;"></i></a>
           {% endif %}

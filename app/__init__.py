@@ -10,6 +10,9 @@ from logging.handlers import RotatingFileHandler
 import os
 from flask_mail import Mail
 from elasticsearch import Elasticsearch
+from flask_rq2 import RQ
+from apscheduler.schedulers.background import BackgroundScheduler
+
 
 
 app = Flask(__name__)
@@ -20,12 +23,23 @@ login = LoginManager(app)
 login.login_view = 'login'
 moment = Moment(app)
 mail = Mail(app)
+rq = RQ(app)
 
 UPLOAD_FOLDER = 'app/static/images'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']]) \
         if app.config['ELASTICSEARCH_URL'] else None
+
+
+if not app.debug or os.getenv('WERKZEUG_RUN_MAIN') == 'true':
+
+    from app.job_scheduler import reprocess_failed_jobs
+
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(reprocess_failed_jobs, 'interval', minutes=5)
+    scheduler.start()
+
 
 if not app.debug:
     if app.config['MAIL_SERVER']:

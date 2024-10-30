@@ -1,21 +1,33 @@
 {% extends "base.html" %}
 
 {% block content %}
+<style>
+    @media (max-width: 576px) {
+      #userinfo {
+          width: 100%;
+      }
+  }
+
+  @media (min-width: 768px) {
+      #userinfo {
+          width: 50px;
+      }
+  }
+  </style>
 <div class="card w-75">
     <div class="card-body">
-      <p class="card-text">
         <div class="container">
             <div class="row">
-                <div class="col-4">
+                <div class="col-auto d-none d-lg-block">
                     {% if user.profile_pic %}
                         <img src=" {{ url_for('static', filename='images/' + user.profile_pic)}}" class="mx-auto d-block" alt="" style="width: 300px; height: 300px; border-radius: 12px;">
                     {% else %}
                         <img src=" {{ url_for('static', filename='images/default-profile-icon.jpg')}}" class="mx-auto d-block" alt="" style="width: 300px; height: 300px; border-radius: 12px;">
                     {% endif %}
-                    <br>
-                    
+                    <br>  
+
                 </div>
-                <div class="col-sm-6 col-md-8">
+                <div class="col p-4 d-flex flex-column position-static" id="userinfo" >
                     <div class="row">
                         <div class="col">
                             <h4><b>{{ user.username }}</b></h4> 

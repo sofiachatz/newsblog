@@ -15,10 +15,8 @@ import uuid as uuid
 import os
 from app.email import send_password_reset_email
 from flask import g
-from elasticsearch.exceptions import ConnectionError as ElasticConnectionError
-from elasticsearch.exceptions import ConnectionTimeout as ConnectionTimeoutError
 from sqlalchemy import func
-
+from app.models import ElasticsearchError
 
 
 
@@ -91,9 +89,10 @@ def register():
 @app.route('/profile/<username>')
 def profile(username):
     user = db.first_or_404(sa.select(User).where(User.username == username))
-    num_posts = len(db.session.scalars(user.posts.select()).all())
+    query = sa.select(Post).where(Post.user_id==user.id)
+    num_posts = len(db.session.scalars(query).all())
     page = request.args.get('page', 1, type=int)
-    query = user.posts.select().order_by(Post.timestamp.desc())
+    query =  sa.select(Post).where(Post.user_id==user.id).order_by(Post.timestamp.desc())
     posts = db.paginate(query, page=page,
                         per_page=app.config['POSTS_PER_PAGE'],
                         error_out=False)
@@ -118,8 +117,6 @@ def likes(username):
     prev_url = url_for('likes', username=user.username, page=liked_posts.prev_num) \
         if liked_posts.has_prev else None
     return render_template("likes.html", title='Likes', liked_posts=liked_posts.items, next_url=next_url, prev_url=prev_url, current_user=current_user, user=user)
-
-
 
 
 
@@ -159,13 +156,13 @@ def edit_profile():
 @app.route('/create_post', methods=['GET', 'POST'])
 @login_required
 def create_post():
-    try: 
+    try:
         form = PostForm()
         if form.validate_on_submit():
             title = form.title.data
             body = form.body.data
             lead_in = form.lead_in.data
-            post = Post(title=title, body=body, lead_in=lead_in, user_id=current_user.id)
+            post = Post(title=title, body=body, lead_in=lead_in, user_id=current_user.id, username=current_user.username)
             db.session.add(post)       
             db.session.commit()
             query = sa.select(Post).where(Post.user_id==current_user.id).order_by(Post.id.desc())
@@ -198,14 +195,11 @@ def create_post():
             flash('Your changes have been saved.')
             return redirect(url_for('post', id=post.id))
         return render_template('create_post.html', title='New Post', h='New Post',
-                            form=form)
-    except ElasticConnectionError:
-        error="Connection error!"
-        return render_template('error.html', title='Error', error=error)
-    except ConnectionTimeoutError:
-        error="Connection Timeout error!"
-        return render_template('error.html', title='Error', error=error)
-
+                                form=form)
+    except ElasticsearchError as e:
+        return render_template('error.html', title='Error', error=f"Elasticsearch Error: {str(e)}")
+    except Exception as e:
+        return render_template('error.html', title='Error', error=f"An error occurred: {str(e)}")
 
 
 @app.template_filter("filter_replies")
@@ -229,11 +223,11 @@ def post(id):
         if not authenticated:
             error="Login to comment."
             return render_template('error.html', title='Error', error=error)
-        comment = Comment(body=form.comment.data, user_id=current_user.id, post_id=post.id)            
+        comment = Comment(body=form.comment.data, user_id=current_user.id, post_id=post.id, username=current_user.username)            
         db.session.add(comment)
         db.session.commit()
-        if post.author != current_user:
-            notification = Notification(sender_id=current_user.id, recipient_id=post.user_id, post_id=post.id, comment_id=comment.id, category="comment_post")
+        if post.author and post.author != current_user:
+            notification = Notification(sender_id=current_user.id, username=current_user.username, recipient_id=post.user_id, post_id=post.id, comment_id=comment.id, category="comment_post")
             db.session.add(notification)
             db.session.commit()
             post.author.add_notification_call('unread_notification_count', post.author.unread_notification_count())
@@ -251,29 +245,29 @@ def post(id):
         if comment.parent_id:
             reply_to = comment.id
             parent_id = comment.parent_id
-        comment = Comment(body=form2.reply.data, user_id=current_user.id, post_id=post.id, parent_id=parent_id, reply_to=reply_to)
+        comment = Comment(body=form2.reply.data, user_id=current_user.id, username=current_user.username, post_id=post.id, parent_id=parent_id, reply_to=reply_to)
         db.session.add(comment)
         db.session.commit()
         recipient1 = None
         if comment.reply_to:
             query = sa.select(User).join(Comment).where(Comment.id==comment.reply_to)
             recipient1 = db.session.scalars(query).first()
-            if recipient1 != current_user:
-                notification = Notification(sender_id=current_user.id, recipient_id=recipient1.id, post_id=post.id, comment_id=comment.id, reply_comment_id=comment.reply_to, category="reply_comment")
+            if recipient1 and recipient1 != current_user:
+                notification = Notification(sender_id=current_user.id, username=current_user.username, recipient_id=recipient1.id, post_id=post.id, comment_id=comment.id, reply_comment_id=comment.reply_to, category="reply_comment")
                 db.session.add(notification)
                 db.session.commit()
                 recipient1.add_notification_call('unread_notification_count', recipient1.unread_notification_count())
                 db.session.commit()
         query = sa.select(User).join(Comment).where(Comment.id==comment.parent_id)
         recipient2 = db.session.scalars(query).first()
-        if recipient2 != current_user and recipient2 != recipient1:
-            notification = Notification(sender_id=current_user.id, recipient_id=recipient2.id, post_id=post.id, comment_id=comment.id, reply_comment_id=comment.parent_id, category="reply_comment")
+        if recipient2 and recipient2 != current_user and recipient2 != recipient1:
+            notification = Notification(sender_id=current_user.id, username=current_user.username, recipient_id=recipient2.id, post_id=post.id, comment_id=comment.id, reply_comment_id=comment.parent_id, category="reply_comment")
             db.session.add(notification)
             db.session.commit()
             recipient2.add_notification_call('unread_notification_count', recipient2.unread_notification_count())
             db.session.commit()
-        if post.author != current_user and post.author != recipient2 and (recipient1 is None or post.author != recipient1):
-                notification = Notification(sender_id=current_user.id, recipient_id=post.user_id, post_id=post.id, comment_id=comment.id, category="comment_post")
+        if post.author and post.author != current_user and post.author != recipient2 and (recipient1 is None or post.author != recipient1):
+                notification = Notification(sender_id=current_user.id, username=current_user.username, recipient_id=post.user_id, post_id=post.id, comment_id=comment.id, category="comment_post")
                 db.session.add(notification)
                 db.session.commit()
                 post.author.add_notification_call('unread_notification_count', post.author.unread_notification_count())
@@ -319,81 +313,92 @@ def post(id):
 @app.route('/edit_post/<id>', methods=['GET', 'POST'])
 @login_required
 def edit_post(id):
-    post = db.first_or_404(sa.select(Post).where(Post.id == id))
-    if post.author == current_user:
-        form = PostForm()
-        if form.validate_on_submit():
-            post.title = form.title.data
-            post.body = form.body.data
-            post.lead_in = form.lead_in.data
-            post.news = None  
-            post.media = None
-            post.showbiz = None
-            post.sports = None
-            post.viral = None    
-            categ = form.category.data
-            for c in categ:
-                if c == 'NEWS':
-                    post.news = 1
-                if c == 'MEDIA':
-                    post.media = 1
-                if c == 'SHOWBIZ':
-                    post.showbiz = 1
-                if c == 'SPORTS':
-                    post.sports = 1
-                if c == 'VIRAL':
-                    post.viral = 1
-            if form.checkbox.data == True:
-                post.post_pic = None
-                db.session.commit()
-            else:
-                pic = form.post_pic.data
-                if pic:
-                    pic_name = str(uuid.uuid1()) + "_" + secure_filename(pic.filename)
-                    pic.save(os.path.join(app.config['UPLOAD_FOLDER'], pic_name))
-                    post.post_pic = pic_name
+    try:
+        post = db.first_or_404(sa.select(Post).where(Post.id == id))
+        if post.author == current_user:
+            form = PostForm()
+            if form.validate_on_submit():
+                post.title = form.title.data
+                post.body = form.body.data
+                post.lead_in = form.lead_in.data
+                post.news = None  
+                post.media = None
+                post.showbiz = None
+                post.sports = None
+                post.viral = None    
+                categ = form.category.data
+                for c in categ:
+                    if c == 'NEWS':
+                        post.news = 1
+                    if c == 'MEDIA':
+                        post.media = 1
+                    if c == 'SHOWBIZ':
+                        post.showbiz = 1
+                    if c == 'SPORTS':
+                        post.sports = 1
+                    if c == 'VIRAL':
+                        post.viral = 1
+                if form.checkbox.data == True:
+                    post.post_pic = None
                     db.session.commit()
                 else:
-                    db.session.commit()
-            flash('Your changes have been saved.')
-            return redirect(url_for('post', id=post.id))
-        elif request.method == 'GET':
-            form.title.data = post.title
-            form.body.data = post.body
-            form.lead_in.data = post.lead_in
-            category = []
-            if post.news:
-                category.append('NEWS')
-            if post.media:
-                category.append('MEDIA')
-            if post.showbiz:
-                category.append('SHOWBIZ')
-            if post.sports:
-                category.append('SPORTS')
-            if post.viral:
-                category.append('VIRAL')
-            form.category.data = category
-            form.post_pic.data  = post.post_pic
-        return render_template('create_post.html', title='Edit Post', h='Edit Post',
-                            form=form, id=post.id)
-    else:
-        error="You cannot edit the post of another user!"
-        return render_template('error.html', title='Error', error=error)
+                    pic = form.post_pic.data
+                    if pic:
+                        pic_name = str(uuid.uuid1()) + "_" + secure_filename(pic.filename)
+                        pic.save(os.path.join(app.config['UPLOAD_FOLDER'], pic_name))
+                        post.post_pic = pic_name
+                        db.session.commit()
+                    else:
+                        db.session.commit()
+                flash('Your changes have been saved.')
+                return redirect(url_for('post', id=post.id))
+            elif request.method == 'GET':
+                form.title.data = post.title
+                form.body.data = post.body
+                form.lead_in.data = post.lead_in
+                category = []
+                if post.news:
+                    category.append('NEWS')
+                if post.media:
+                    category.append('MEDIA')
+                if post.showbiz:
+                    category.append('SHOWBIZ')
+                if post.sports:
+                    category.append('SPORTS')
+                if post.viral:
+                    category.append('VIRAL')
+                form.category.data = category
+                form.post_pic.data  = post.post_pic
+            return render_template('create_post.html', title='Edit Post', h='Edit Post',
+                                form=form, id=post.id)
+        else:
+            error="You cannot edit the post of another user!"
+            return render_template('error.html', title='Error', error=error)
 
+    except ElasticsearchError as e:
+        return render_template('error.html', title='Error', error=f"Elasticsearch Error: {str(e)}")
+    except Exception as e:
+        return render_template('error.html', title='Error', error=f"An error occurred: {str(e)}")
 
 
 @app.route('/delete_post/<id>', methods=['GET', 'POST'])
 @login_required
 def delete_post(id):
-    post = db.first_or_404(sa.select(Post).where(Post.id == id))
-    if post.author == current_user:
-        db.session.delete(post)       
-        db.session.commit()
-        flash('Your post has been deleted.')
-        return redirect(url_for('profile', username=current_user.username))
-    else:
-        error="You cannot delete the post of another user!"
-        return render_template('error.html', title='Error', error=error)
+    try:
+        post = db.first_or_404(sa.select(Post).where(Post.id == id))
+        if post.author == current_user:
+            db.session.delete(post)       
+            db.session.commit()
+            flash('Your post has been deleted.')
+            return redirect(url_for('profile', username=current_user.username))
+        else:
+            error="You cannot delete the post of another user!"
+            return render_template('error.html', title='Error', error=error)
+
+    except ElasticsearchError as e:
+        return render_template('error.html', title='Error', error=f"Elasticsearch Error: {str(e)}")
+    except Exception as e:
+        return render_template('error.html', title='Error', error=f"An error occurred: {str(e)}")
 
 
 @app.route('/reset_password_request', methods=['GET', 'POST'])
@@ -519,19 +524,20 @@ def like_post(id):
     like = db.session.scalars(query).first()
     if like:
         db.session.delete(like)
-        query = sa.select(Notification).where((Notification.sender_id==current_user.id)&(Notification.recipient_id==post.user_id)&(Notification.post_id==post.id)&(Notification.category=="like_post"))
+        query = sa.select(Notification).where((Notification.sender_id==current_user.id)&(Notification.post_id==post.id)&(Notification.category=="like_post"))
         notification = db.session.scalars(query).first()
         if notification:
             db.session.delete(notification)
     else:
         like = Like(user_id=current_user.id, post_id=post.id)
         db.session.add(like)
-        if post.author != current_user:
-            notification = Notification(sender_id=current_user.id, recipient_id=post.user_id, post_id=post.id, category="like_post")        
+        if post.author and post.author != current_user:
+            notification = Notification(sender_id=current_user.id, username=current_user.username, recipient_id=post.user_id, post_id=post.id, category="like_post")        
             db.session.add(notification)
     db.session.commit()
-    post.author.add_notification_call('unread_notification_count', post.author.unread_notification_count())
-    db.session.commit()
+    if post.author:
+        post.author.add_notification_call('unread_notification_count', post.author.unread_notification_count())
+        db.session.commit()
     return jsonify({"likes": len(post.likes), "liked": current_user.id in map(lambda x: x.user_id, post.likes)})
 
 
@@ -566,7 +572,7 @@ def like_comment(id):
         db.session.commit()
         comment.num_likes = len(comment.likes)
         db.session.commit()
-        query = sa.select(Notification).where((Notification.sender_id==current_user.id)&(Notification.recipient_id==comment.user_id)&(Notification.comment_id==comment.id)&(Notification.category=="like_comment"))
+        query = sa.select(Notification).where((Notification.sender_id==current_user.id)&(Notification.comment_id==comment.id)&(Notification.category=="like_comment"))
         notification = db.session.scalars(query).first()
         if notification:
             db.session.delete(notification)
@@ -577,12 +583,13 @@ def like_comment(id):
         db.session.commit()
         comment.num_likes = len(comment.likes)
         db.session.commit()
-        if comment.author != current_user:
-            notification = Notification(sender_id=current_user.id, recipient_id=comment.user_id, comment_id=comment.id, post_id=comment.post_id, category="like_comment")        
+        if comment.author and comment.author != current_user:
+            notification = Notification(sender_id=current_user.id, username=current_user.username, recipient_id=comment.user_id, comment_id=comment.id, post_id=comment.post_id, category="like_comment")        
             db.session.add(notification)
             db.session.commit()
-    comment.author.add_notification_call('unread_notification_count', comment.author.unread_notification_count())
-    db.session.commit()
+    if comment.author:
+        comment.author.add_notification_call('unread_notification_count', comment.author.unread_notification_count())
+        db.session.commit()
     return jsonify({"likes": len(comment.likes), "liked": current_user.id in map(lambda x: x.user_id, comment.likes)})
 
 
@@ -590,7 +597,7 @@ def like_comment(id):
 @login_required
 def notifications():
 
-    # Delete old notifications first
+    # Delete old notifications
     time_threshold = datetime.now(timezone.utc) - timedelta(minutes=5)
     notifications_to_delete = Notification.query.filter(
         Notification.recipient_id == current_user.id,
@@ -605,7 +612,7 @@ def notifications():
     current_user.add_notification_call('unread_notification_count', 0)
     db.session.commit()
     page = request.args.get('page', 1, type=int)
-    query = current_user.notifications_received.select().order_by(Notification.timestamp.desc())  
+    query = sa.select(Notification).where(Notification.recipient_id==current_user.id).order_by(Notification.timestamp.desc())
     notifications = db.paginate(query, page=page,
                            per_page=app.config['POSTS_PER_PAGE'],
                            error_out=False)
@@ -677,9 +684,10 @@ def generate_notification_url(notification_id):
 @login_required
 def notification_calls():
     since = request.args.get('since', 0.0, type=float)
-    query = current_user.notification_calls.select().where(
+    query = sa.select(Notification_Call).where(
+        Notification_Call.user_id == current_user.id,
         Notification_Call.timestamp > since).order_by(Notification_Call.timestamp.asc())
-    notification_calls = db.session.scalars(query)
+    notification_calls = db.session.scalars(query).all()
     return [{
         'name': n.name,
         'data': n.get_data(),

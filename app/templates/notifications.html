@@ -15,8 +15,8 @@
         <div class="col-8 notification-item" data-id="{{ n.id }}">
         <div class="card {% if n.status == False %}border-dark{% endif %} mb-3">
             <div class="card-body">
-              <div class="d-flex flex-start">
-                {% if n.sender.profile_pic %}
+              <div class="d-flex flex-start align-items-center">
+                {% if n.sender and n.sender.profile_pic %}
                     <img src=" {{ url_for('static', filename='images/' + n.sender.profile_pic)}}" class="rounded-circle shadow-1-strong me-3" width="40" height="40">
                 {% else %}
                     <img src=" {{ url_for('static', filename='images/default-profile-icon.jpg')}}" class="rounded-circle shadow-1-strong me-3" width="40" height="40">
@@ -26,7 +26,7 @@
                     <div class="col-9">
                     <h6 class="text-primary mb-0">
                         <a href="#" class="link-dark link-offset-2 link-underline link-underline-opacity-0 stretched-link notification-link" data-id="{{ n.id }}">
-                            <span style="color: #007bff;">{{ n.sender.username }}</span>
+                            <span style="color: #007bff;">{{ n.username }} {% if not n.sender %} <span style="color: red;">(Deleted User)</span> {% endif %}</span>
                             {% if n.category == "like_post" %}
                             <span class="text-body ms-2">liked your post <span class="fw-bold">{{ n.post.title }}"</span></span>
                             {% elif n.category == "comment_post" %}
