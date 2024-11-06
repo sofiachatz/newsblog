@@ -2,33 +2,30 @@
 
 {% block content %}
 <style>
-    #box {
-    /* max-width: 75%;
-    height: auto; */
+  #box {
     overflow-wrap: break-word;
-    }
+  }
 
-    /* Float four columns side by side */
-.column {
-  float: left;
-  width: 25%;
-  padding: 0 10px;
-}
+  .column {
+    float: left;
+    width: 25%;
+    padding: 0 10px;
+  }
 
-/* Remove extra left and right margins, due to padding in columns */
-.row {margin: 0 -5px;}
+  /* Remove extra left and right margins, due to padding in columns */
+  .row {margin: 0 -5px;}
 
-/* Clear floats after the columns */
-.row:after {
-  content: "";
-  display: table;
-  clear: both;
-}
+  /* Clear floats after the columns */
+  .row:after {
+    content: "";
+    display: table;
+    clear: both;
+  }
 
-.card-body {
-          overflow-wrap: break-word; 
-          word-break: break-word;
-      }
+  .card-body {
+    overflow-wrap: break-word; 
+    word-break: break-word;
+  }
 
 /* Responsive columns - one column layout (vertical) on small screens */
 @media screen and (max-width: 600px) {
@@ -38,7 +35,6 @@
     margin-bottom: 20px;
   }
 }
-
 
 #menu{
   float: right;
@@ -65,6 +61,22 @@
   overflow-wrap: break-word;
 }
  
+.row-category {
+  display: flex;
+  flex-wrap: wrap;       /* Ensures items wrap to a new row when out of space */
+  gap: 20px;             /* Adds space between columns */
+}
+
+.column-category {
+  flex: 0 1 300px;       /* Fixes column width at 300px, allowing wrapping */ 
+}
+
+@media (max-width: 576px) {
+  .column-category {
+  flex: 1 1 100%;    /* Full width on small screens */
+  }
+}
+
 </style>
 
 <div class="row g-5">
@@ -231,136 +243,83 @@
 </section>
 
 {% if post.news==1 %}
-  
-  {% if posts_news1 %}
-    <hr>
-    <div class="col">
-      <h3>More from: <a class="btn btn-primary" type="button" aria-expanded="false" style="line-height:0; font-size: x-large; padding-top: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('news') }}">News</a></h3>
-    </div>
-    <div class="row">
-    {% for p in posts_news1 %}
-      <div class="column">
+{% if posts_news %}
+<hr>
+<div class="col">
+    <h3>View more from<a class="btn btn-primary" type="button" aria-expanded="false" style="line-height:0; font-size: xx-large; padding-top: 0%; background-color: white; border-color: white; color: rgb(31, 115, 218);" href="{{ url_for('news') }}">News</a></h3>
+</div>
+<div class="row-category">
+    {% for p in posts_news %}
+    <div class="column-category">
         {% include '_minipost.html' %}
-      </div>
-    {% endfor %}
     </div>
-  {% endif %}
-  {% if posts_news2 %}
-    <div class="row">
-    {% for p in posts_news2 %}
-      <div class="column">
-        {% include '_minipost.html' %}
-      </div>
     {% endfor %}
-    </div>
-  {% endif %}
+</div>
+{% endif %}
 {% endif %}
 
 {% if post.media==1 %}
-  
-  {% if posts_media1 %}
-    <hr>
-    <div class="col">
-      <h3>More from:<a class="btn btn-primary" type="button" aria-expanded="false" style="line-height:0; font-size: x-large; padding-top: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('media') }}">Media</a></h3>
-    </div>
-    <div class="row">
-    {% for p in posts_media1 %}
-      <div class="column">
+{% if posts_media %}
+<hr>
+<div class="col">
+    <h3>View more from<a class="btn btn-primary" type="button" aria-expanded="false" style="line-height:0; font-size: xx-large; padding-top: 0%; background-color: white; border-color: white; color: rgb(31, 115, 218);" href="{{ url_for('media') }}">Media</a></h3>
+</div>
+<div class="row-category">
+    {% for p in posts_media %}
+    <div class="column-category">
         {% include '_minipost.html' %}
-      </div>
-    {% endfor %}
     </div>
-  {% endif %}
-  {% if posts_media2 %}
-    <div class="row">
-    {% for p in posts_media2 %}
-      <div class="column">
+    {% endfor %}
+</div>
+{% endif %}
+{% endif %}
+
+{% if post.showbiz==1 %}
+{% if posts_showbiz %}
+<hr>
+<div class="col">
+    <h3>View more from<a class="btn btn-primary" type="button" aria-expanded="false" style="line-height:0; font-size: xx-large; padding-top: 0%; background-color: white; border-color: white; color: rgb(31, 115, 218);" href="{{ url_for('showbiz') }}">Showbiz</a></h3>
+</div>
+<div class="row-category">
+    {% for p in posts_showbiz %}
+    <div class="column-category">
         {% include '_minipost.html' %}
-      </div>
-    {% endfor %}
     </div>
-  {% endif %}
+    {% endfor %}
+</div>
+{% endif %}
 {% endif %}
 
 {% if post.sports==1 %}
-  
-  {% if posts_sports1 %}
-    <hr>
-    <div class="col">
-      <h3>More from:<a class="btn btn-primary" type="button" aria-expanded="false" style="line-height:0; font-size: x-large; padding-top: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('sports') }}">Sports</a></h3>
-    </div>
-    <div class="row">
-    {% for p in posts_sports1 %}
-      <div class="column">
+{% if posts_sports %}
+<hr>
+<div class="col">
+    <h3>View more from<a class="btn btn-primary" type="button" aria-expanded="false" style="line-height:0; font-size: xx-large; padding-top: 0%; background-color: white; border-color: white; color: rgb(31, 115, 218);" href="{{ url_for('sports') }}">Sports</a></h3>
+</div>
+<div class="row-category">
+    {% for p in posts_sports %}
+    <div class="column-category">
         {% include '_minipost.html' %}
-      </div>
-    {% endfor %}
     </div>
-  {% endif %}
-  {% if posts_sports2 %}
-    <div class="row">
-    {% for p in posts_sports2 %}
-      <div class="column">
-        {% include '_minipost.html' %}
-      </div>
     {% endfor %}
-    </div>
-  {% endif %}
+</div>
 {% endif %}
-
-
-{% if post.showbiz==1 %}
-  
-  {% if posts_showbiz1 %}
-    <hr>
-    <div class="col">
-      <h3>More from:<a class="btn btn-primary" type="button" aria-expanded="false" style="line-height:0; font-size: x-large; padding-top: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('showbiz') }}">Showbiz</a></h3>
-    </div>
-    <div class="row">
-    {% for p in posts_showbiz1 %}
-      <div class="column">
-        {% include '_minipost.html' %}
-      </div>
-    {% endfor %}
-    </div>
-  {% endif %}
-  {% if posts_showbiz2 %}
-    <div class="row">
-    {% for p in posts_showbiz2 %}
-      <div class="column">
-        {% include '_minipost.html' %}
-      </div>
-    {% endfor %}
-    </div>
-  {% endif %}
 {% endif %}
-
 
 {% if post.viral==1 %}
-  
-  {% if posts_viral1 %}
-    <hr>
-    <div class="col">
-      <h3>More from:<a class="btn btn-primary" type="button" aria-expanded="false" style="line-height:0; font-size: x-large; padding-top: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('viral') }}">Viral</a></h3>
-    </div>
-    <div class="row">
-    {% for p in posts_viral1 %}
-      <div class="column">
+{% if posts_viral %}
+<hr>
+<div class="col">
+    <h3>View more from<a class="btn btn-primary" type="button" aria-expanded="false" style="line-height:0; font-size: xx-large; padding-top: 0%; background-color: white; border-color: white; color: rgb(31, 115, 218);" href="{{ url_for('viral') }}">Viral</a></h3>
+</div>
+<div class="row-category">
+    {% for p in posts_viral %}
+    <div class="column-category">
         {% include '_minipost.html' %}
-      </div>
-    {% endfor %}
     </div>
-  {% endif %}
-  {% if posts_viral2 %}
-    <div class="row">
-    {% for p in posts_viral2 %}
-      <div class="column">
-        {% include '_minipost.html' %}
-      </div>
     {% endfor %}
-    </div>
-  {% endif %}
+</div>
 {% endif %}
-
+{% endif %}
 
 {% endblock %}

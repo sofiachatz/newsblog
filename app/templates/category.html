@@ -1,12 +1,154 @@
 {% extends "base.html" %}
 
 {% block content %}
- <h1> {{category}} </h1>
- {% for post in posts %}
-        {% include '_post.html' %}
-{% endfor %}
+<style>
+
+  .blog-grid {
+    margin-top: 15px;
+    margin-bottom: 15px;
+    }
+
+    .blog-grid .blog-img {
+    position: relative;
+    border-radius: 5px;
+    overflow: hidden;
+    }
+
+    .blog-grid .blog-img .date {
+    position: absolute;
+    background: #3a3973;
+    color: #ffffff;
+    padding: 8px 15px;
+    left: 0;
+    top: 10px;
+    font-size: 14px;
+    }
+
+    .blog-grid .blog-info {
+    box-shadow: 0 0 30px rgba(31, 45, 61, 0.125);
+    border-radius: 5px;
+    background: #ffffff;
+    padding: 20px;
+    margin: -30px 20px 0;
+    position: relative;
+    }
+
+    .blog-grid .blog-info h5 {
+    font-size: 22px;
+    font-weight: 500;
+    margin: 0 0 10px;
+    }
+
+    .blog-grid .blog-info h5 a {
+    color: #3a3973;
+    }
+
+    .blog-grid .blog-info p {
+    margin: 0;
+    }
+
+    .blog-grid .blog-info .btn-bar {
+    margin-top: 20px;
+    }
+
+    .post-image {
+        width: 350px;            /* Set the fixed width */
+        height: 280px;           /* Set the fixed height */
+        object-fit: cover;       /* Ensures the image fills the container, cropping if necessary */
+        object-position: center; /* Centers the focal point in the image */
+        display: block;          /* Optional: Ensures no inline-block spacing issues */
+    }
+    
+    .blog-img {
+        width: 350px;   /* Matches intended image width */
+        height: 280px;  /* Matches intended image height */
+        overflow: hidden; /* Keeps overflow from expanding the container */
+    }
+
+</style>
+
+<h1 style="margin-left: 7px; color: blue;"> {{category}} </h1>
+
+{% if most_liked %}
+<div class="container">
+    <h3>Most Liked</h3>
+    <div class="row">
+        {% for post in most_liked %}
+        <div class="col-lg-4">
+            <div class="blog-grid">
+                <div class="blog-img">
+                    {% if post.post_pic %}
+                    <img src="{{ url_for('static', filename='images/' + post.post_pic)}}" class="post-image mx-auto d-block" alt="">
+                    {% else %} 
+                    <img src="{{ url_for('static', filename='images/default-post-pic1.jpg')}}" class="post-image mx-auto d-block" alt="">
+                    {% endif %}
+                </div>
+                <div class="blog-info">
+                    <div class="row justify-content-between">
+                        <div class="col">
+                        <strong class="d-inline-block mb-2 text-primary">
+                            {% if post.news %}<a class="btn btn-primary float-end" type="button" aria-expanded="false" style="line-height:0; font-size: larger; padding-left: 0%; padding-bottom: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('news') }}">News</a>{% endif %}
+                            {% if post.media %}<a class="btn btn-primary float-end" type="button" aria-expanded="false" style="line-height:0; font-size: larger; padding-left: 0%; padding-bottom: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('media') }}">Media</a>{% endif %}
+                            {% if post.showbiz %}<a class="btn btn-primary float-end" type="button" aria-expanded="false" style="line-height:0; font-size: larger; padding-left: 0%; padding-bottom: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('showbiz') }}">Showbiz</a>{% endif %}
+                            {% if post.sports %}<a class="btn btn-primary float-end" type="button" aria-expanded="false" style="line-height:0; font-size: larger; padding-left: 0%; padding-bottom: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('sports') }}">Sports</a>{% endif %}
+                            {% if post.viral %}<a class="btn btn-primary float-end" type="button" aria-expanded="false" style="line-height:0; font-size: larger; padding-left: 0%; padding-bottom: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('viral') }}">Viral</a>{% endif %}
+                        </strong>
+                        </div>
+                        {% if post.author == current_user %}
+                        <div class="col">
+                        <div class="dropdown show">
+                        <button class="btn btn-secondary float-end" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="line-height:0; font-size: x-large; background-color: white; border-color: white; color: grey;">
+                            ...
+                        </button>
+                        <div class="dropdown-menu" aria-labelledby="dropdownMenuLink">
+                            <a class="dropdown-item" href="{{ url_for('edit_post', id=post.id) }}">Edit Post</a>
+                            <a class="dropdown-item" href="{{ url_for('delete_post', id=post.id) }}">Delete Post</a>
+                        </div>
+                        </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <h5 style="overflow-wrap: break-word; word-wrap: break-word;">{{ post.title }}</h5>
+                    {% if post.author %}
+                    <p>by <a href="{{ url_for('profile', username=post.author.username) }}" class="link-offset-2 link-underline link-underline-opacity-0">
+                    {{ post.author.username }} </a> - {{ moment(post.timestamp).format('LLL') }} </p>
+                    {% else %}
+                    <p>{{ post.username }} <span style="color: red;">(Deleted User)</span>- {{ moment(post.timestamp).format('LLL') }}</p>
+                    {% endif %}
+                    {% if post.lead_in %}
+                    <p style="overflow-wrap: break-word; word-wrap: break-word;">{{post.lead_in}}</p>
+                    {% endif %}
+                    {% if current_user.id in post.likes|map(attribute="user_id")|list %}
+                    <i
+                    class="fa-solid fa-heart"
+                    id="like-button-{{post.id}}"
+                    onclick="like({{post.id}})"></i>
+                    {% else %}
+                    <i
+                    class="fa-regular fa-heart"
+                    id="like-button-{{post.id}}"
+                    onclick="like({{post.id}})"
+                    ></i>
+                    {% endif %}
+                    <span id="likes-count-{{post.id}}">
+                    {{ post.likes|length }}</span>
+                    <div><a href="{{url_for('post', id=post.id)}}" class="link-offset-2 link-underline link-underline-opacity-0">Continue reading</a></div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+<br> 
 
 {% if posts %}
+<h3>Most Recent</h3>
+<div class="row " id="recent_posts">
+{% for post in posts %}
+    {% include '_post.html' %}
+{% endfor %}
+</div>
 <nav aria-label="Post navigation">
     <ul class="pagination">
         <li class="page-item{% if not prev_url %} disabled{% endif %}">

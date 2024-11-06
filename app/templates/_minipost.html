@@ -11,6 +11,7 @@
         margin-bottom: 20px;
     }
 </style>
+<div class="col-md-4">
 <div class="card bg-dark text-white" style="width: 300px; height: 250px;" id="card-body">
     {% if p.post_pic %}
     <img src=" {{ url_for('static', filename='images/' + p.post_pic)}}" class="card-img" style="width: 300px; height: 250px;">
@@ -32,16 +33,17 @@
                     {% if current_user.id in p.likes|map(attribute="user_id")|list %}
                     <i
                     class="fa-solid fa-heart"
-                    id="like-button-{{post.id}}"></i>
+                    id="like-button-{{p.id}}"></i>
                     {% else %}
                     <i
                     class="fa-regular fa-heart"
-                    id="like-button-{{post.id}}"></i>
+                    id="like-button-{{p.id}}"></i>
                     {% endif %}
-                    <span id="likes-count-{{post.id}}">
+                    <span id="likes-count-{{p.id}}">
                     {{ p.likes|length }}</span>
                 </div>
             </div>
         </div>
     </div>
+</div>
 </div>

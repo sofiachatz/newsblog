@@ -32,15 +32,35 @@ def before_request():
 @app.route('/index')
 def index():
     page = request.args.get('page', 1, type=int)
+    filter_after = datetime.today() - timedelta(days = 120)
+    query = sa.select(Post).join(Like).where(Post.viral == 1).filter(Post.timestamp >= filter_after).group_by(Like.post_id).order_by(func.count(Like.post_id).desc()).order_by(Post.timestamp.desc())
+    viral1 = db.session.scalars(query).first()
+    query = sa.select(Post).join(Like).filter(Post.timestamp >= filter_after).group_by(Like.post_id).order_by(func.count(Like.post_id).desc()).order_by(Post.timestamp.desc())
+    trending = db.session.scalars(query).first()
+    most_liked = db.session.scalars(query.offset(1).limit(3)).all()
     query = sa.select(Post).order_by(Post.timestamp.desc())
+    if not trending:
+        trending = db.session.scalars(query).first()
     posts = db.session.scalars(query).all()
     posts = db.paginate(query, page=page,
                         per_page=app.config['POSTS_PER_PAGE'], error_out=False)
-    next_url = url_for('index', page=posts.next_num) \
+    next_url = url_for('index', page=posts.next_num, _anchor='recent_posts') \
         if posts.has_next else None
-    prev_url = url_for('index', page=posts.prev_num) \
-        if posts.has_prev else None 
-    return render_template("index.html", title='Home', posts=posts.items, next_url=next_url, prev_url=prev_url, current_user=current_user)
+    prev_url = url_for('index', page=posts.prev_num, _anchor='recent_posts') \
+        if posts.has_prev else None
+    query = sa.select(Post).where(Post.news==1).order_by(Post.timestamp.desc())
+    posts_news = db.session.scalars(query.limit(8)).all() 
+    query = sa.select(Post).where(Post.media==1).order_by(Post.timestamp.desc())
+    posts_media = db.session.scalars(query.limit(8)).all() 
+    query = sa.select(Post).where(Post.showbiz==1).order_by(Post.timestamp.desc())
+    posts_showbiz = db.session.scalars(query.limit(8)).all()
+    query = sa.select(Post).where(Post.sports==1).order_by(Post.timestamp.desc())
+    posts_sports = db.session.scalars(query.limit(8)).all()
+    query = sa.select(Post).where((Post.viral==1)&(Post.id!=viral1.id)).order_by(Post.timestamp.desc())
+    posts_viral = db.session.scalars(query.limit(8)).all()
+    return render_template("index.html", title='Home', posts=posts.items, next_url=next_url, prev_url=prev_url, current_user=current_user, 
+                            trending=trending, most_liked=most_liked, viral1=viral1, posts_media=posts_media, posts_showbiz=posts_showbiz, 
+                            posts_news=posts_news, posts_sports=posts_sports, posts_viral=posts_viral)
 
 
 
@@ -276,20 +296,15 @@ def post(id):
                 post.id, comment.id, app.config['POSTS_PER_PAGE'], is_reply=True)
         return redirect(url)
     query = sa.select(Post).where((Post.media==1)&(Post.id!=post.id)).order_by(Post.timestamp.desc())
-    posts_media1 = db.session.scalars(query).all()[:4]
-    posts_media2 = db.session.scalars(query).all()[5:8]
+    posts_media = db.session.scalars(query.limit(8)).all()
     query = sa.select(Post).where((Post.news==1)&(Post.id!=post.id)).order_by(Post.timestamp.desc())
-    posts_news1 = db.session.scalars(query).all()[:4]
-    posts_news2 = db.session.scalars(query).all()[5:8]
+    posts_news = db.session.scalars(query.limit(8)).all()
     query = sa.select(Post).where((Post.sports==1)&(Post.id!=post.id)).order_by(Post.timestamp.desc())
-    posts_sports1 = db.session.scalars(query).all()[:4]
-    posts_sports2 = db.session.scalars(query).all()[5:8]
+    posts_sports = db.session.scalars(query.limit(8)).all()
     query = sa.select(Post).where((Post.showbiz==1)&(Post.id!=post.id)).order_by(Post.timestamp.desc())
-    posts_showbiz1 = db.session.scalars(query).all()[:4]
-    posts_showbiz2 = db.session.scalars(query).all()[5:8]
+    posts_showbiz = db.session.scalars(query.limit(8)).all()
     query = sa.select(Post).where((Post.viral==1)&(Post.id!=post.id)).order_by(Post.timestamp.desc())
-    posts_viral1 = db.session.scalars(query).all()[:4]
-    posts_viral2 = db.session.scalars(query).all()[5:8]
+    posts_viral = db.session.scalars(query.limit(8)).all()
     filter_after = datetime.today() - timedelta(days = 120)
     query = sa.select(Post).join(Like).where(Post.id!=post.id).filter(Post.timestamp >= filter_after).group_by(Like.post_id).order_by(func.count(Like.post_id).desc()).order_by(Post.timestamp.desc())
     trending = db.session.scalars(query).all()[:6]
@@ -304,9 +319,8 @@ def post(id):
     prev_url = url_for('post', id=post.id, page=comments.prev_num, _anchor='comment_section') \
         if comments.has_prev else None
     all_comments = Comment.query.filter_by(post_id=post.id).all()
-    return render_template('post.html', title=post.title, post=post, posts_media1=posts_media1, posts_media2=posts_media2, posts_news1=posts_news1, posts_news2=posts_news2, 
-                            posts_sports1=posts_sports1, posts_sports2=posts_sports2, posts_showbiz1=posts_showbiz1, posts_showbiz2=posts_showbiz2,
-                            posts_viral1=posts_viral1, posts_viral2=posts_viral2, current_user=current_user, trending=trending, comments=comments, replies=replies, 
+    return render_template('post.html', title=post.title, post=post, posts_media=posts_media, posts_showbiz=posts_showbiz, posts_news=posts_news, posts_sports=posts_sports, 
+                            posts_viral=posts_viral, current_user=current_user, trending=trending, comments=comments, replies=replies, 
                             form=form, form2=form2, authenticated=authenticated, next_url=next_url, prev_url=prev_url, all_comments=all_comments)
 
 
@@ -436,66 +450,86 @@ def reset_password(token):
 @app.route('/media')
 def media():
     page = request.args.get('page', 1, type=int)
-    query = sa.select(Post).where(Post.media==1).order_by(Post.timestamp.desc())
+    filter_after = datetime.today() - timedelta(days = 120)
+    query = sa.select(Post).join(Like).where(Post.media==1).filter(Post.timestamp >= filter_after).group_by(Like.post_id).order_by(func.count(Like.post_id).desc()).order_by(Post.timestamp.desc())
+    most_liked = db.session.scalars(query.limit(3)).all()
+    excluded_ids = [post.id for post in most_liked[:3]]
+    query = sa.select(Post).where(Post.media==1).filter(~Post.id.in_(excluded_ids)).order_by(Post.timestamp.desc())
     posts = db.paginate(query, page=page,
                         per_page=app.config['POSTS_PER_PAGE'], error_out=False)
     next_url = url_for('media', page=posts.next_num) \
         if posts.has_next else None
     prev_url = url_for('media', page=posts.prev_num) \
         if posts.has_prev else None
-    return render_template("category.html", title='Media', category="Media", posts=posts.items, next_url=next_url, prev_url=prev_url, current_user=current_user)
+    return render_template("category.html", title='Media', category="Media", posts=posts.items, next_url=next_url, prev_url=prev_url, most_liked=most_liked, current_user=current_user)
 
 
 @app.route('/news')
 def news():
     page = request.args.get('page', 1, type=int)
-    query = sa.select(Post).where(Post.news==1).order_by(Post.timestamp.desc())
+    filter_after = datetime.today() - timedelta(days = 120)
+    query = sa.select(Post).join(Like).where(Post.news==1).filter(Post.timestamp >= filter_after).group_by(Like.post_id).order_by(func.count(Like.post_id).desc()).order_by(Post.timestamp.desc())
+    most_liked = db.session.scalars(query.limit(3)).all()
+    excluded_ids = [post.id for post in most_liked[:3]]
+    query = sa.select(Post).where(Post.news==1).filter(~Post.id.in_(excluded_ids)).order_by(Post.timestamp.desc())
     posts = db.paginate(query, page=page,
                         per_page=app.config['POSTS_PER_PAGE'], error_out=False)
     next_url = url_for('news', page=posts.next_num) \
         if posts.has_next else None
     prev_url = url_for('news', page=posts.prev_num) \
         if posts.has_prev else None
-    return render_template("category.html", title='News', category="News", posts=posts.items, next_url=next_url, prev_url=prev_url, current_user=current_user)
+    return render_template("category.html", title='News', category="News", posts=posts.items, next_url=next_url, prev_url=prev_url, most_liked=most_liked, current_user=current_user)
 
 
 @app.route('/showbiz')
 def showbiz():
     page = request.args.get('page', 1, type=int)
-    query = sa.select(Post).where(Post.showbiz==1).order_by(Post.timestamp.desc())
+    filter_after = datetime.today() - timedelta(days = 120)
+    query = sa.select(Post).join(Like).where(Post.showbiz==1).filter(Post.timestamp >= filter_after).group_by(Like.post_id).order_by(func.count(Like.post_id).desc()).order_by(Post.timestamp.desc())
+    most_liked = db.session.scalars(query.limit(3)).all()
+    excluded_ids = [post.id for post in most_liked[:3]]
+    query = sa.select(Post).where(Post.showbiz==1).filter(~Post.id.in_(excluded_ids)).order_by(Post.timestamp.desc())
     posts = db.paginate(query, page=page,
                         per_page=app.config['POSTS_PER_PAGE'], error_out=False)
     next_url = url_for('showbiz', page=posts.next_num) \
         if posts.has_next else None
     prev_url = url_for('showbiz', page=posts.prev_num) \
         if posts.has_prev else None
-    return render_template("category.html", title='Showbiz', category="Showbiz", posts=posts.items, next_url=next_url, prev_url=prev_url, current_user=current_user)
+    return render_template("category.html", title='Showbiz', category="Showbiz", posts=posts.items, next_url=next_url, prev_url=prev_url, most_liked=most_liked, current_user=current_user)
 
 
 @app.route('/sports')
 def sports():
     page = request.args.get('page', 1, type=int)
-    query = sa.select(Post).where(Post.sports==1).order_by(Post.timestamp.desc())
+    filter_after = datetime.today() - timedelta(days = 120)
+    query = sa.select(Post).join(Like).where(Post.sports==1).filter(Post.timestamp >= filter_after).group_by(Like.post_id).order_by(func.count(Like.post_id).desc()).order_by(Post.timestamp.desc())
+    most_liked = db.session.scalars(query.limit(3)).all()
+    excluded_ids = [post.id for post in most_liked[:3]]
+    query = sa.select(Post).where(Post.sports==1).filter(~Post.id.in_(excluded_ids)).order_by(Post.timestamp.desc())
     posts = db.paginate(query, page=page,
                         per_page=app.config['POSTS_PER_PAGE'], error_out=False)
     next_url = url_for('sports', page=posts.next_num) \
         if posts.has_next else None
     prev_url = url_for('sports', page=posts.prev_num) \
         if posts.has_prev else None
-    return render_template("category.html", title='Sports', category="Sports", posts=posts.items, next_url=next_url, prev_url=prev_url, current_user=current_user)
+    return render_template("category.html", title='Sports', category="Sports", posts=posts.items, next_url=next_url, prev_url=prev_url, most_liked=most_liked, current_user=current_user)
 
 
 @app.route('/viral')
 def viral():
     page = request.args.get('page', 1, type=int)
-    query = sa.select(Post).where(Post.viral==1).order_by(Post.timestamp.desc())
+    filter_after = datetime.today() - timedelta(days = 120)
+    query = sa.select(Post).join(Like).where(Post.viral==1).filter(Post.timestamp >= filter_after).group_by(Like.post_id).order_by(func.count(Like.post_id).desc()).order_by(Post.timestamp.desc())
+    most_liked = db.session.scalars(query.limit(3)).all()
+    excluded_ids = [post.id for post in most_liked[:3]]
+    query = sa.select(Post).where(Post.viral==1).filter(~Post.id.in_(excluded_ids)).order_by(Post.timestamp.desc())
     posts = db.paginate(query, page=page,
                         per_page=app.config['POSTS_PER_PAGE'], error_out=False)
     next_url = url_for('viral', page=posts.next_num) \
         if posts.has_next else None
     prev_url = url_for('viral', page=posts.prev_num) \
         if posts.has_prev else None
-    return render_template("category.html", title='Viral', category="Viral", posts=posts.items, next_url=next_url, prev_url=prev_url, current_user=current_user)
+    return render_template("category.html", title='Viral', category="Viral", posts=posts.items, next_url=next_url, prev_url=prev_url, most_liked=most_liked, current_user=current_user)
 
 
 @app.route('/search')
