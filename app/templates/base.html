@@ -51,6 +51,9 @@
                     <li><a class="dropdown-item" href="{{ url_for('viral') }}">Viral</a></li>
                   </ul>
                 </li>
+                <li class="nav-item">
+                  <a class="nav-link active" aria-current="page" href="{{ url_for('authors') }}" >Authors</a>
+                </li>
                 {% if current_user.is_anonymous %}
                 <li class="nav-item">
                   <a class="nav-link" href="{{ url_for('login') }}">Login</a>
@@ -167,6 +170,11 @@
         $(document).ready(function() {
           $('#commentreports').DataTable();
         });
+
+        $(document).ready(function() {
+          $('#authorsdata').DataTable();
+        });
+
 
       </script>
       <script>

@@ -935,7 +935,6 @@ def generate_comment_url(id):
 
 
 
-
 @app.route('/delete_report_comment/<id>', methods=['GET', 'POST'])
 @admin_required
 def delete_report_comment(id):
@@ -944,3 +943,11 @@ def delete_report_comment(id):
     db.session.commit()
     flash('The report has been deleted.')
     return redirect(url_for('admin_post_management'))
+
+
+
+@app.route('/authors', methods=['GET'])
+def authors():
+    query = sa.select(User).where(User.is_author==True).order_by(User.username)
+    authors = db.session.scalars(query).all()
+    return render_template('authors.html', title='Authors', authors=authors)

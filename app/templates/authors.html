@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h3>Meet our Authors</h3>
+<hr>
+<br>
+<div class="container pt-2" style="width: 100%; overflow-x: auto;">
+  <table id="authorsdata" class="table table-hover" style="width:100%">
+    <thead>
+        <tr>
+          <th data-dt-order="disable">Author</th>
+          <th>Username</th>
+          <th data-dt-order="disable">About the author</th>
+          <th>Last Seen</th>
+          <th data-dt-order="disable">Posts</th>
+        </tr>
+    </thead>
+    <tbody>
+      {% for user in authors %}
+        <tr>
+            <td>
+              <a href="{{ url_for('profile', username=user.username) }}">
+                {% if user.profile_pic %}
+                  <img src="{{ url_for('static', filename='images/' + user.profile_pic)}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                {% else %}
+                <img src="{{ url_for('static', filename='images/default-profile-icon.jpg')}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                {% endif %}
+              </a>
+            </td>
+            <td>{{user.username }}</td>
+            <td style="width: 350px; white-space: normal; word-break: break-word;">
+                {% if user.about_me %}
+                    {{ user.about_me }}
+                {% endif %}
+            </td>
+            <td>{{ moment(user.last_seen).fromNow() }}</td>
+            <td style="width: 350px; white-space: normal; word-break: break-word;">
+                {% for post in user.posts %}
+                    <p><a href="{{ url_for('post', id=post.id) }}" class="link-dark link-offset-2 link-underline link-underline-opacity-0">
+                        {{ post.title }}
+                    </a></p>
+                {% endfor %}
+            </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <th>Author</th>
+            <th>Username</th>
+            <th>About the author</th>
+            <th>Last Seen</th>
+            <th>Posts</th>
+        </tr>
+    </tfoot>
+  </table>
+</div>
+
+{% endblock %}
