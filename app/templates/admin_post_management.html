@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h3>Post Management</h3>
+<hr>
+<br>
+<h4><b>Posts</b></h4>
+<div class="container pt-2" style="width: 100%; overflow-x: auto;">
+  <table id="postdata" class="table table-hover" style="width:100%;">
+    <thead>
+        <tr>
+          <th data-dt-order="disable">Post</th>
+          <th >Title</th>
+          <th data-dt-order="disable">Category</th>
+          <th data-dt-order="disable">Lead in</th>
+          <th>Likes</th>
+          <th>Comments</th>
+          <th>Reports</th>
+          <th data-dt-order="disable">Author</th>
+          <th>Username</th>
+          <th>Timestamp</th>
+          <th data-dt-order="disable">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+      {% for post in posts %}
+        <tr>
+            <td>
+                <a href="{{ url_for('post', id=post.id) }}">
+                    {% if post.post_pic %}
+                    <img src="{{ url_for('static', filename='images/' + post.post_pic)}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                    {% else %}
+                    <img src="{{ url_for('static', filename='images/default-post-pic1.jpg')}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                    {% endif %}
+                </a>
+            </td>
+            <td style="width: 350px; white-space: normal; word-break: break-word;">{{ post.title }}</td>
+            <td>
+                {% if post.news %}<p>News</p>{% endif %}
+                {% if post.media %}<p>Media</p>{% endif %}
+                {% if post.showbiz %}<p>Showbiz</p>{% endif %}
+                {% if post.sports %}<p>Sports</p>{% endif %}
+                {% if post.viral %}<p>Viral</p>{% endif %}
+            </td>
+            <td style="width: 350px; white-space: normal; word-break: break-word;">{{ post.lead_in }}</td>
+            <td>{{ post.likes|length }}</td>
+            <td>{{ post.comments|length }}</td>
+            <td>{{ post.reports|length }}</td>
+            <td>
+                {% if post.author %}
+                <a href="{{ url_for('profile', username=post.author.username) }}">
+                    {% if post.author.profile_pic %}
+                      <img src="{{ url_for('static', filename='images/' + post.author.profile_pic)}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                    {% else %}
+                    <img src="{{ url_for('static', filename='images/default-profile-icon.jpg')}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                    {% endif %}
+                </a>
+                {% else %}
+                <img src="{{ url_for('static', filename='images/default-profile-icon.jpg')}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                {% endif %}
+            </td>
+            <td>
+                {% if post.author %}
+                    {{ post.author.username }}
+                {% else %}
+                    {{ post.username }} <span style="color: red;">(Deleted User)</span>
+                {% endif %}
+            </td>
+            <td>{{ moment(post.timestamp).format('LLL') }}</td>
+            <td>
+              <a href="#" onclick="return confirmDeletion('{{ url_for('delete_post', id=post.id) }}');" class="icon-link icon-link-hover" style="--bs-icon-link-transform: translate3d(0, -.125rem, 0);">
+                <i class="bi bi-trash3" style="margin-left: 1ch;"></i>
+              </a>
+            </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <th>Post</th>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Lead in</th>
+            <th>Likes</th>
+            <th>Comments</th>
+            <th>Reports</th>
+            <th>Author</th>
+            <th>Username</th>
+            <th>Timestamp</th>
+            <th>Actions</th>
+        </tr>
+    </tfoot>
+  </table>
+</div>
+<br>
+<br>
+<br>
+<h4><b>Post Reports</b></h4>
+<div class="container pt-2" style="width: 100%; overflow-x: auto;">
+  <table id="postreports" class="table table-hover" style="width:100%">
+    <thead>
+        <tr>
+          <th data-dt-order="disable">Reported Post</th>
+          <th>Title</th>
+          <th data-dt-order="disable">Author</th>
+          <th>Username</th>
+          <th data-dt-order="disable">Reporter</th>
+          <th>Username</th>
+          <th data-dt-order="disable">Note</th>
+          <th>Timestamp</th>
+          <th data-dt-order="disable">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+      {% for report in reports %}
+        <tr>
+            <td>
+              <a href="{{ url_for('post', id=report.post_id) }}">
+                {% if report.reported_post.post_pic %}
+                  <img src="{{ url_for('static', filename='images/' + report.reported_post.post_pic)}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                {% else %}
+                  <img src="{{ url_for('static', filename='images/default-post-pic1.jpg')}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                {% endif %}
+              </a>
+            </td>
+            <td>{{ report.reported_post.title }}</td>
+            <td>
+              {% if report.reported_post.author %}
+                <a href="{{ url_for('profile', username=report.reported_post.author.username) }}">
+                  {% if report.reported_post.author.profile_pic %}
+                    <img src="{{ url_for('static', filename='images/' + report.reported_post.author.profile_pic)}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                  {% else %}
+                    <img src="{{ url_for('static', filename='images/default-profile-icon.jpg')}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                  {% endif %}
+                </a>
+              {% else %}
+                <img src="{{ url_for('static', filename='images/default-profile-icon.jpg')}}" style="width: 50px; height: 50px; border-radius: 50%;">
+              {% endif %}
+            </td>
+            <td>
+              {% if report.reported_post.author %}
+                {{ report.reported_post.author.username }}
+              {% else %}
+                {{ report.reported_post.username }} <span style="color: red;">(Deleted User)</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if report.post_reporter %}
+                <a href="{{ url_for('profile', username=report.post_reporter.username) }}">
+                  {% if report.post_reporter.profile_pic %}
+                    <img src="{{ url_for('static', filename='images/' + report.post_reporter.profile_pic)}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                  {% else %}
+                  <img src="{{ url_for('static', filename='images/default-profile-icon.jpg')}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                  {% endif %}
+                </a>
+              {% else %}
+                <img src="{{ url_for('static', filename='images/default-profile-icon.jpg')}}" style="width: 50px; height: 50px; border-radius: 50%;">
+              {% endif %}
+            </td>
+            <td>
+              {% if report.post_reporter %}
+                    {{ report.post_reporter.username }}
+                {% else %}
+                    <span style="color: red;">Deleted User</span>
+              {% endif %}
+            </td>
+            <td style="width: 350px; white-space: normal; word-break: break-word;">{{ report.note }}</td>
+            <td>{{ moment(report.timestamp).format('LLL') }}</td>
+            <td>
+              <a href="#" onclick="return confirmDeletion('{{ url_for('delete_report_post', id=report.id) }}');" class="icon-link icon-link-hover" style="--bs-icon-link-transform: translate3d(0, -.125rem, 0);">
+                <i class="bi bi-trash3" style="margin-left: 1ch;"></i>
+              </a>
+            </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+          <th>Reported Post</th>
+          <th>Title</th>
+          <th>Author</th>
+          <th>Username</th>
+          <th>Reporter</th>
+          <th>Username</th>
+          <th>Note</th>
+          <th>Timestamp</th>
+          <th>Actions</th>
+        </tr>
+    </tfoot>
+  </table>
+</div>
+<br>
+<br>
+<br>
+<h4><b>Comment Reports</b></h4>
+<div class="container pt-2" style="width: 100%; overflow-x: auto;">
+  <table id="commentreports" class="table table-hover" style="width:100%">
+    <thead>
+        <tr>
+          <th data-dt-order="disable">Reported Comment</th>
+          <th data-dt-order="disable">Author</th>
+          <th>Username</th>
+          <th data-dt-order="disable">Reporter</th>
+          <th>Username</th>
+          <th data-dt-order="disable">Note</th>
+          <th>Timestamp</th>
+          <th data-dt-order="disable">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+      {% for report in comment_reports %}
+        <tr>
+            <td style="width: 350px; white-space: normal; word-break: break-word;">
+              <a href="{{ url_for('generate_comment_url', id=report.comment_id) }}" class="link-dark link-offset-2 link-underline link-underline-opacity-0">
+                {{ report.reported_comment.body }}
+              </a>
+            </td>
+            <td>
+              {% if report.reported_comment.author %}
+                <a href="{{ url_for('profile', username=report.reported_comment.author.username) }}">
+                  {% if report.reported_comment.author.profile_pic %}
+                    <img src="{{ url_for('static', filename='images/' + report.reported_comment.author.profile_pic)}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                  {% else %}
+                    <img src="{{ url_for('static', filename='images/default-profile-icon.jpg')}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                  {% endif %}
+                </a>
+              {% else %}
+                <img src="{{ url_for('static', filename='images/default-profile-icon.jpg')}}" style="width: 50px; height: 50px; border-radius: 50%;">
+              {% endif %}
+            </td>
+            <td>
+              {% if report.reported_comment.author %}
+                {{ report.reported_comment.author.username }}
+              {% else %}
+                {{ report.reported_comment.username }} <span style="color: red;">(Deleted User)</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if report.comment_reporter %}
+                <a href="{{ url_for('profile', username=report.comment_reporter.username) }}">
+                  {% if report.comment_reporter.profile_pic %}
+                    <img src="{{ url_for('static', filename='images/' + report.comment_reporter.profile_pic)}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                  {% else %}
+                    <img src="{{ url_for('static', filename='images/default-profile-icon.jpg')}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                  {% endif %}
+                </a>
+              {% else %}
+                <img src="{{ url_for('static', filename='images/default-profile-icon.jpg')}}" style="width: 50px; height: 50px; border-radius: 50%;">
+              {% endif %}
+            </td>
+            <td>
+              {% if report.comment_reporter %}
+                {{ report.comment_reporter.username }}
+              {% else %}
+                <span style="color: red;">Deleted User</span>
+              {% endif %}
+            </td>
+            <td style="width: 350px; white-space: normal; word-break: break-word;">{{ report.note }}</td>
+            <td>{{ moment(report.timestamp).format('LLL') }}</td>
+            <td>
+              <a href="#" onclick="return confirmDeletion('{{ url_for('delete_report_comment', id=report.id) }}');" class="icon-link icon-link-hover" style="--bs-icon-link-transform: translate3d(0, -.125rem, 0);">
+                <i class="bi bi-trash3" style="margin-left: 1ch;"></i>
+              </a>
+            </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+          <th>Reported Comment</th>
+          <th>Author</th>
+          <th>Username</th>
+          <th>Reporter</th>
+          <th>Username</th>
+          <th>Note</th>
+          <th>Timestamp</th>
+          <th>Actions</th>
+        </tr>
+    </tfoot>
+  </table>
+</div>
+
+
+{% endblock %}

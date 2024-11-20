@@ -175,3 +175,8 @@ class ReplyForm(FlaskForm):
     reply = TextAreaField(validators=[DataRequired(),Length(min=0, max=200)])
     parent_id = StringField()
     submit = SubmitField('Send')
+
+
+class ReportForm(FlaskForm):
+    note = TextAreaField('Reason for the report:', validators=[DataRequired(),Length(min=0, max=255)])
+    submit = SubmitField('Report')

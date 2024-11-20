@@ -89,3 +89,21 @@ document.addEventListener("DOMContentLoaded", function() {
       }
   }
 });
+
+function requestAuthorPermissions() {
+  fetch('/request_author_permissions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      location.reload();
+    } else {
+      alert("Error: " + data.message);
+    }
+  })
+  .catch(error => console.error('Error:', error));
+}

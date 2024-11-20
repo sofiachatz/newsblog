@@ -225,7 +225,15 @@
 {% else %}
     <h1>Hi, {{ current_user.username }}!</h1>
     <br>
-    <p><a href="{{ url_for('create_post') }}" class="btn text-white" style="background-color: rgb(31, 115, 218); font-size: x-large;" role="button">Create your post</a></p>
+    {% if current_user.request_status == 'approved' or current_user.is_author %}
+        <span class="badge bg-success" style="font-size: larger; margin-bottom: 10px;">Author Permissions Granted</span>
+        <br>
+        <a href="{{ url_for('create_post') }}" class="btn text-white" style="background-color: rgb(31, 115, 218); font-size: x-large;" role="button">Create your post</a>
+    {% elif current_user.request_status == 'pending' %}
+        <span class="badge text-white" style="background-color: gray; font-size: larger; margin-bottom: 10px;">Request Pending</span>
+    {% elif current_user.request_status == 'no_request' or current_user.request_status == 'rejected' %}
+        <button class="btn text-white" style="background-color: rgb(31, 115, 218); font-size: larger;" role="button" onclick="requestAuthorPermissions()">Request Author Permissions</button>
+    {% endif %}
 {% endif %}
 <hr>
 <br>
@@ -263,7 +271,8 @@
                     {% endif %}
                 </div>
                 <div class="blog-info">
-                    <div class="row justify-content-between">
+                    <div class="row">
+                    <div class="d-flex justify-content-between">
                         <div class="col">
                         <strong class="d-inline-block mb-2 text-primary">
                             {% if post.news %}<a class="btn btn-primary float-end" type="button" aria-expanded="false" style="line-height:0; font-size: larger; padding-left: 0%; padding-bottom: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('news') }}">News</a>{% endif %}
@@ -273,19 +282,25 @@
                             {% if post.viral %}<a class="btn btn-primary float-end" type="button" aria-expanded="false" style="line-height:0; font-size: larger; padding-left: 0%; padding-bottom: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('viral') }}">Viral</a>{% endif %}
                         </strong>
                         </div>
-                        {% if post.author == current_user %}
-                        <div class="col">
-                        <div class="dropdown show">
-                        <button class="btn btn-secondary float-end" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="line-height:0; font-size: x-large; background-color: white; border-color: white; color: grey;">
-                            ...
-                        </button>
-                        <div class="dropdown-menu" aria-labelledby="dropdownMenuLink">
-                            <a class="dropdown-item" href="{{ url_for('edit_post', id=post.id) }}">Edit Post</a>
-                            <a class="dropdown-item" href="{{ url_for('delete_post', id=post.id) }}">Delete Post</a>
-                        </div>
-                        </div>
+                        {% if not current_user.is_anonymous %}
+                        <div class="dropdown show" id="menu">
+                            <button class="btn btn-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="line-height:0; font-size: x-large; background-color: white; border-color: white; color: grey;">
+                                ...
+                            </button>
+                            <div class="dropdown-menu" aria-labelledby="dropdownMenuLink">
+                                {% if post.author == current_user %}
+                                <a class="dropdown-item" href="{{ url_for('edit_post', id=post.id) }}">Edit Post</a>
+                                {% endif %}
+                                {% if post.author == current_user or current_user.is_admin %}
+                                <a class="dropdown-item" href="#" onclick="return confirmDeletion('{{ url_for('delete_post', id=post.id) }}');">Delete Post</a>
+                                {% endif %}
+                                {% if post.author != current_user %}
+                                <a class="dropdown-item" href="{{ url_for('report_post', id=post.id) }}">Report Post</a>
+                                {% endif %}
+                            </div>
                         </div>
                         {% endif %}
+                    </div>
                     </div>
                     <h5 style="overflow-wrap: break-word; word-wrap: break-word;">{{ post.title }}</h5>
                     {% if post.author %}
@@ -333,23 +348,30 @@
         {% endif %}
     </div>
     <br>
-    <div class="row justify-content-between">
+    <div class="row">
+    <div class="d-flex justify-content-between">
         <div class="col">
             <strong class="d-inline-block mb-2 text-primary"><a class="btn btn-primary float-end" type="button" aria-expanded="false" style="line-height:0; font-size: larger; padding-left: 0%; padding-bottom: 0%; background-color: white; border-color: white; color: blue;" href="{{ url_for('viral') }}">Viral</a></strong>
         </div>
-        {% if viral1.author == current_user %}
-        <div class="col">
-            <div class="dropdown show">
-                <button class="btn btn-secondary float-end" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="line-height:0; font-size: x-large; background-color: white; border-color: white; color: grey;">
+        {% if not current_user.is_anonymous %}
+        <div class="dropdown show" id="menu">
+            <button class="btn btn-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="line-height:0; font-size: x-large; background-color: white; border-color: white; color: grey;">
                 ...
-                </button>
-                <div class="dropdown-menu" aria-labelledby="dropdownMenuLink">
-                    <a class="dropdown-item" href="{{ url_for('edit_post', id=viral1.id) }}">Edit Post</a>
-                    <a class="dropdown-item" href="{{ url_for('delete_post', id=viral1.id) }}">Delete Post</a>
-                </div>
+            </button>
+            <div class="dropdown-menu" aria-labelledby="dropdownMenuLink">
+                {% if viral1.author == current_user %}
+                <a class="dropdown-item" href="{{ url_for('edit_post', id=viral1.id) }}">Edit Post</a>
+                {% endif %}
+                {% if viral1.author == current_user or current_user.is_admin %}
+                <a class="dropdown-item" href="#" onclick="return confirmDeletion('{{ url_for('delete_post', id=viral1.id) }}');">Delete Post</a>
+                {% endif %}
+                {% if viral1.author != current_user %}
+                <a class="dropdown-item" href="{{ url_for('report_post', id=viral1.id) }}">Report Post</a>
+                {% endif %}
             </div>
         </div>
         {% endif %}
+    </div>
     </div>
     <br>
     <h3 style="overflow-wrap: break-word; word-wrap: break-word;">{{ viral1.title }}</h3>

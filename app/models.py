@@ -22,6 +22,7 @@ from rq.timeouts import JobTimeoutException
 import logging
 from redis import RedisError, ConnectionError
 from typing import List
+from enum import Enum
 
 
 
@@ -107,6 +108,14 @@ db.event.listen(db.session, 'after_commit', SearchableMixin.after_commit)
 def load_user(id):
     return db.session.get(User, int(id))
 
+
+class RequestStatus(Enum):
+    NO_REQUEST = "no_request"
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
 class User(UserMixin, db.Model): 
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     username: so.Mapped[str] = so.mapped_column(sa.String(64), index=True,
@@ -114,6 +123,8 @@ class User(UserMixin, db.Model):
     email: so.Mapped[str] = so.mapped_column(sa.String(120), index=True,
                                              unique=True)
     password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
+    is_admin: so.Mapped[Optional[bool]] = so.mapped_column(default=False)
+    is_author: so.Mapped[Optional[bool]] = so.mapped_column(default=False)
     posts: so.Mapped[List['Post']] = so.relationship('Post', back_populates='author')
     about_me: so.Mapped[Optional[str]] = so.mapped_column(sa.String(400))
     last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(
@@ -127,6 +138,12 @@ class User(UserMixin, db.Model):
     notifications_sent: so.Mapped[List["Notification"]] = so.relationship("Notification", foreign_keys='Notification.sender_id', back_populates='sender', primaryjoin='Notification.sender_id == User.id')
     notifications_received: so.Mapped[List["Notification"]] = so.relationship("Notification", foreign_keys='Notification.recipient_id', back_populates='recipient', primaryjoin='Notification.recipient_id == User.id', cascade='all, delete-orphan')
     notification_calls: so.Mapped[List["Notification_Call"]] = so.relationship("Notification_Call", back_populates='user', cascade="all, delete-orphan")
+    request_status: so.Mapped[Optional[str]] = so.mapped_column(db.String(50), default=RequestStatus.NO_REQUEST.value)
+    reports_against: so.Mapped[List["Reported_User"]] = so.relationship('Reported_User', foreign_keys='Reported_User.reported_id', back_populates='reported_user', lazy='dynamic',  cascade="all, delete-orphan")
+    reports_by_user: so.Mapped[List["Reported_User"]] = so.relationship('Reported_User', foreign_keys='Reported_User.reporter_id', back_populates='reporter', lazy='dynamic')
+    post_reports: so.Mapped[List["Reported_Post"]] = so.relationship('Reported_Post', back_populates='post_reporter')
+    comment_reports: so.Mapped[List["Reported_Comment"]] = so.relationship('Reported_Comment', back_populates='comment_reporter')
+
 
     def unread_notification_count(self):
         last_read_time = self.last_notification_read_time or datetime(1900, 1, 1)
@@ -164,8 +181,31 @@ class User(UserMixin, db.Model):
             return
         return db.session.get(User, id)
 
+    def request_author_status(self):
+        self.request_status = RequestStatus.PENDING.value
+        db.session.commit()
 
+    def approve_author_status(self):
+        self.is_author = True
+        self.request_status = RequestStatus.APPROVED.value
+        db.session.commit()
+
+    def reject_author_status(self):
+        self.request_status = RequestStatus.REJECTED.value
+        db.session.commit()
         
+
+
+class Reported_User(db.Model):
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    reporter_id: so.Mapped[Optional[int]] = so.mapped_column(sa.ForeignKey(User.id), index=True)
+    reported_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id, ondelete="CASCADE"), index=True, nullable=False)
+    note: so.Mapped[str] = so.mapped_column(sa.String(255), nullable=False)
+    timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
+    reporter: so.Mapped[List["User"]] = so.relationship('User', foreign_keys=[reporter_id], back_populates='reports_by_user')
+    reported_user: so.Mapped[List["User"]] = so.relationship('User', foreign_keys=[reported_id], back_populates='reports_against')
+
+
 
 class Post(SearchableMixin, db.Model):
     __searchable__ = ['title','lead_in','body']
@@ -187,9 +227,23 @@ class Post(SearchableMixin, db.Model):
     likes: so.Mapped[List["Like"]] = so.relationship("Like", backref="post", cascade="all, delete-orphan")
     comments: so.Mapped[List["Comment"]] = so.relationship("Comment", backref="post", cascade="all, delete-orphan")
     notifications: so.Mapped[List["Notification"]] = so.relationship("Notification", foreign_keys='Notification.post_id', back_populates='post', cascade='all, delete-orphan')
+    reports: so.Mapped[List["Reported_Post"]] = so.relationship('Reported_Post', back_populates='reported_post', cascade="all, delete-orphan")
 
     def __repr__(self):
         return '<Post {}>'.format(self.title)
+
+
+
+class Reported_Post(db.Model):
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    reporter_id: so.Mapped[Optional[int]] = so.mapped_column(sa.ForeignKey(User.id), index=True)
+    post_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Post.id, ondelete="CASCADE"), index=True, nullable=False)
+    note: so.Mapped[str] = so.mapped_column(sa.String(255), nullable=False)
+    timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
+    post_reporter: so.Mapped[List["User"]] = so.relationship('User', back_populates='post_reports')
+    reported_post: so.Mapped[List["Post"]] = so.relationship('Post', back_populates='reports')
+
+
 
 class Like(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
@@ -216,6 +270,7 @@ class Comment(db.Model):
     num_likes: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer(), default=0)
     notifications: so.Mapped[List["Notification"]] = so.relationship("Notification", foreign_keys='Notification.comment_id', back_populates='comment', cascade='all, delete')
     notifications_replies: so.Mapped[List["Notification"]] = so.relationship("Notification", foreign_keys='Notification.reply_comment_id', back_populates='reply_comment', cascade='all, delete')
+    reports: so.Mapped[List["Reported_Comment"]] = so.relationship('Reported_Comment', back_populates='reported_comment', cascade="all, delete-orphan")
 
 
 class Like_Comment(db.Model):
@@ -224,6 +279,16 @@ class Like_Comment(db.Model):
     comment_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Comment.id, ondelete="CASCADE"), nullable=False, index=True)
     timestamp: so.Mapped[datetime] = so.mapped_column(
         index=True, default=lambda: datetime.now(timezone.utc))
+
+
+class Reported_Comment(db.Model):
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    reporter_id: so.Mapped[Optional[int]] = so.mapped_column(sa.ForeignKey(User.id), index=True)
+    comment_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Comment.id, ondelete="CASCADE"), index=True, nullable=False)
+    note: so.Mapped[str] = so.mapped_column(sa.String(255), nullable=False)
+    timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
+    comment_reporter: so.Mapped[List["User"]] = so.relationship('User', back_populates='comment_reports')
+    reported_comment: so.Mapped[List["Comment"]] = so.relationship('Comment', back_populates='reports')
 
 
 class Notification(db.Model):

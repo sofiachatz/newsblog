@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h3>User Management</h3>
+<hr>
+<br>
+<h4><b>Users</b> 
+  <a href="{{ url_for('add_user') }}" class="icon-link icon-link-hover" style="--bs-icon-link-transform: translate3d(0, -.125rem, 0);">
+  <i class="bi bi-person-plus" style="margin-left: 1ch;"></i></a>
+</h4>
+<div class="container pt-2">
+  <table id="userdata" class="table table-hover" style="width:100%">
+    <thead>
+        <tr>
+          <th data-dt-order="disable">User</th>
+          <th>Userame</th>
+          <th>Email</th>
+          <th>Posts</th>
+          <th>Last Seen</th>
+          <th>Reports Against</th>
+          <th>Author</th>
+          <th data-dt-order="disable">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+        <tr>
+            <td>
+              <a href="{{ url_for('profile', username=user.username) }}">
+                {% if user.profile_pic %}
+                  <img src="{{ url_for('static', filename='images/' + user.profile_pic)}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                {% else %}
+                <img src="{{ url_for('static', filename='images/default-profile-icon.jpg')}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                {% endif %}
+              </a>
+            </td>
+            <td>{{user.username }}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.posts|length }}</td>
+            <td>{{ moment(user.last_seen).fromNow() }}</td>
+            <td>{{ user.reports_against.count() }}</td>
+            <td>
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" 
+                      id="isAuthorSwitch{{ user.id }}" 
+                      {% if user.is_author %} checked {% endif %}
+                      onchange="updateAuthorStatus({{ user.id }}, this.checked)">
+              </div>
+            </td>
+            <td>
+              <a href="#" onclick="return confirmDeletion('{{ url_for('delete_user', id=user.id) }}');" class="icon-link icon-link-hover" style="--bs-icon-link-transform: translate3d(0, -.125rem, 0);">
+                <i class="bi bi-trash3" style="margin-left: 1ch;"></i>
+              </a>
+            </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+          <th>User</th>
+          <th>Userame</th>
+          <th>Email</th>
+          <th>Posts</th>
+          <th>Last Seen</th>
+          <th>Reports Against</th>
+          <th>Author</th>
+          <th>Actions</th>
+        </tr>
+    </tfoot>
+  </table>
+</div>
+<br>
+<br>
+<br>
+<h4><b>Requests</b></h4>
+<div class="container pt-2">
+  <table id="requests" class="table table-hover" style="width:100%">
+    <thead>
+        <tr>
+          <th data-dt-order="disable">User</th>
+          <th>Userame</th>
+          <th>Email</th>
+          <th data-dt-order="disable">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+      {% for user in requests %}
+        <tr>
+            <td>
+              <a href="{{ url_for('profile', username=user.username) }}">
+                {% if user.profile_pic %}
+                  <img src="{{ url_for('static', filename='images/' + user.profile_pic)}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                {% else %}
+                <img src="{{ url_for('static', filename='images/default-profile-icon.jpg')}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                {% endif %}
+              </a>
+            </td>
+            <td>{{user.username }}</td>
+            <td>{{ user.email }}</td>
+            <td>
+              <button class="btn btn-success" onclick="approveRequest({{ user.id }})">Approve</button>
+              <button class="btn btn-danger" onclick="rejectRequest({{ user.id }})">Reject</button>
+            </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+          <th>User</th>
+          <th>Userame</th>
+          <th>Email</th>
+          <th>Actions</th>
+        </tr>
+    </tfoot>
+  </table>
+</div>
+<br>
+<br>
+<br>
+<h4><b>Reports</b></h4>
+<div class="container pt-2" style="width: 100%; overflow-x: auto;">
+  <table id="reports" class="table table-hover" style="width:100%">
+    <thead>
+        <tr>
+          <th data-dt-order="disable"></th>
+          <th>Reported User</th>
+          <th data-dt-order="disable"></th>
+          <th>Reporter</th>
+          <th data-dt-order="disable">Note</th>
+          <th>Timestamp</th>
+          <th data-dt-order="disable">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+      {% for report in reports %}
+        <tr>
+            <td>
+              <a href="{{ url_for('profile', username=report.reported_user.username) }}">
+                {% if report.reported_user.profile_pic %}
+                  <img src="{{ url_for('static', filename='images/' + report.reported_user.profile_pic)}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                {% else %}
+                <img src="{{ url_for('static', filename='images/default-profile-icon.jpg')}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                {% endif %}
+              </a>
+            </td>
+            <td>{{ report.reported_user.username }}</td>
+            <td>
+              {% if report.reporter %}
+                <a href="{{ url_for('profile', username=report.reporter.username) }}">
+                  {% if report.reporter.profile_pic %}
+                    <img src="{{ url_for('static', filename='images/' + report.reporter.profile_pic)}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                  {% else %}
+                    <img src="{{ url_for('static', filename='images/default-profile-icon.jpg')}}" style="width: 50px; height: 50px; border-radius: 50%;">
+                  {% endif %}
+                </a>
+              {% else %}
+                <img src="{{ url_for('static', filename='images/default-profile-icon.jpg')}}" style="width: 50px; height: 50px; border-radius: 50%;">
+              {% endif %}
+            </td>
+            <td>
+              {% if report.reporter %}
+                    {{ report.reporter.username }}
+                {% else %}
+                    <span style="color: red;">Deleted User</span>
+              {% endif %}
+            </td>
+            <td style="width: 350px; white-space: normal; word-break: break-word;">{{ report.note }}</td>
+            <td>{{ moment(report.timestamp).format('LLL') }}</td>
+            <td>
+              <a href="#" onclick="return confirmDeletion('{{ url_for('delete_report_user', id=report.id) }}');" class="icon-link icon-link-hover" style="--bs-icon-link-transform: translate3d(0, -.125rem, 0);">
+                <i class="bi bi-trash3" style="margin-left: 1ch;"></i>
+              </a>
+            </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+          <th></th>
+          <th>Reported User</th>
+          <th></th>
+          <th>Reporter</th>
+          <th>Note</th>
+          <th>Timestamp</th>
+          <th>Actions</th>
+        </tr>
+    </tfoot>
+  </table>
+</div>
+
+
+
+
+
+<script>
+
+  function updateAuthorStatus(userId, isAuthor) {
+    fetch(`/update_author_status/${userId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ is_author: isAuthor })
+    })
+    .then(response => {
+      if (response.ok) {
+        console.log(`User ${userId} is_author set to ${isAuthor}`);
+      } else {
+        console.error('Failed to update is_author status');
+      }
+    })
+    .catch(error => console.error('Error:', error));
+  }
+
+  function approveRequest(userId) {
+    fetch(`/approve_author_status/${userId}`, { method: 'POST' })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert("Request approved");
+          location.reload();
+        }
+      });
+  }
+
+  function rejectRequest(userId) {
+    fetch(`/reject_author_status/${userId}`, { method: 'POST' })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert("Request rejected");
+          location.reload();
+        }
+      });
+  }
+</script>
+
+
+{% endblock %}

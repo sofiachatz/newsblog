@@ -1,10 +1,10 @@
 from flask import render_template, flash, redirect, url_for, jsonify
 from app import app
-from app.forms import LoginForm, RegistrationForm, EditProfileForm, PostForm, ResetPasswordRequestForm, ResetPasswordForm, SearchForm, CommentForm, ReplyForm
+from app.forms import LoginForm, RegistrationForm, ReportForm, EditProfileForm, PostForm, ResetPasswordRequestForm, ResetPasswordForm, SearchForm, CommentForm, ReplyForm
 from flask_login import current_user, login_user
 import sqlalchemy as sa
 from app import db
-from app.models import User, Post, Like, Comment, Like_Comment, Notification, Notification_Call
+from app.models import User, Post, Like, Comment, Like_Comment, Notification, Notification_Call, RequestStatus, Reported_User, Reported_Post, Reported_Comment
 from flask_login import logout_user
 from flask_login import login_required
 from flask import request
@@ -17,7 +17,21 @@ from app.email import send_password_reset_email
 from flask import g
 from sqlalchemy import func
 from app.models import ElasticsearchError
+from functools import wraps
 
+
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            flash("You need to log in to access this page.", "warning")
+            return redirect(url_for("login"))
+        if not current_user.is_admin:
+            flash("You do not have permission to access this page.", "danger")
+            return redirect(url_for("index"))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 @app.before_request
@@ -56,7 +70,10 @@ def index():
     posts_showbiz = db.session.scalars(query.limit(8)).all()
     query = sa.select(Post).where(Post.sports==1).order_by(Post.timestamp.desc())
     posts_sports = db.session.scalars(query.limit(8)).all()
-    query = sa.select(Post).where((Post.viral==1)&(Post.id!=viral1.id)).order_by(Post.timestamp.desc())
+    if viral1:
+        query = sa.select(Post).where((Post.viral==1)&(Post.id!=viral1.id)).order_by(Post.timestamp.desc())
+    else:
+        query = sa.select(Post).where(Post.viral==1).order_by(Post.timestamp.desc())
     posts_viral = db.session.scalars(query.limit(8)).all()
     return render_template("index.html", title='Home', posts=posts.items, next_url=next_url, prev_url=prev_url, current_user=current_user, 
                             trending=trending, most_liked=most_liked, viral1=viral1, posts_media=posts_media, posts_showbiz=posts_showbiz, 
@@ -176,51 +193,53 @@ def edit_profile():
 @app.route('/create_post', methods=['GET', 'POST'])
 @login_required
 def create_post():
-    try:
-        form = PostForm()
-        if form.validate_on_submit():
-            title = form.title.data
-            body = form.body.data
-            lead_in = form.lead_in.data
-            post = Post(title=title, body=body, lead_in=lead_in, user_id=current_user.id, username=current_user.username)
-            db.session.add(post)       
-            db.session.commit()
-            query = sa.select(Post).where(Post.user_id==current_user.id).order_by(Post.id.desc())
-            post = db.session.scalars(query).first()
-            category = form.category.data
-            for c in category:
-                if c == 'NEWS':
-                    post.news = 1
-                if c == 'MEDIA':
-                    post.media = 1
-                if c == 'SHOWBIZ':
-                    post.showbiz = 1
-                if c == 'SPORTS':
-                    post.sports = 1
-                if c == 'VIRAL':
-                    post.viral = 1
-            db.session.commit()
-            if form.checkbox.data == True:
-                post.post_pic = None
+    if current_user.is_author:
+        try:
+            form = PostForm()
+            if form.validate_on_submit():
+                title = form.title.data
+                body = form.body.data
+                lead_in = form.lead_in.data
+                post = Post(title=title, body=body, lead_in=lead_in, user_id=current_user.id, username=current_user.username)
+                db.session.add(post)       
                 db.session.commit()
-            else:
-                pic = form.post_pic.data
-                if pic:
-                    pic_name = str(uuid.uuid1()) + "_" + secure_filename(pic.filename)
-                    pic.save(os.path.join(app.config['UPLOAD_FOLDER'], pic_name))
-                    post.post_pic = pic_name
+                query = sa.select(Post).where(Post.user_id==current_user.id).order_by(Post.id.desc())
+                post = db.session.scalars(query).first()
+                category = form.category.data
+                for c in category:
+                    if c == 'NEWS':
+                        post.news = 1
+                    if c == 'MEDIA':
+                        post.media = 1
+                    if c == 'SHOWBIZ':
+                        post.showbiz = 1
+                    if c == 'SPORTS':
+                        post.sports = 1
+                    if c == 'VIRAL':
+                        post.viral = 1
+                db.session.commit()
+                if form.checkbox.data == True:
+                    post.post_pic = None
                     db.session.commit()
                 else:
-                    db.session.commit()
-            flash('Your changes have been saved.')
-            return redirect(url_for('post', id=post.id))
-        return render_template('create_post.html', title='New Post', h='New Post',
-                                form=form)
-    except ElasticsearchError as e:
-        return render_template('error.html', title='Error', error=f"Elasticsearch Error: {str(e)}")
-    except Exception as e:
-        return render_template('error.html', title='Error', error=f"An error occurred: {str(e)}")
-
+                    pic = form.post_pic.data
+                    if pic:
+                        pic_name = str(uuid.uuid1()) + "_" + secure_filename(pic.filename)
+                        pic.save(os.path.join(app.config['UPLOAD_FOLDER'], pic_name))
+                        post.post_pic = pic_name
+                        db.session.commit()
+                    else:
+                        db.session.commit()
+                flash('Your changes have been saved.')
+                return redirect(url_for('post', id=post.id))
+            return render_template('create_post.html', title='New Post', h='New Post',
+                                    form=form)
+        except ElasticsearchError as e:
+            return render_template('error.html', title='Error', error=f"Elasticsearch Error: {str(e)}")
+        except Exception as e:
+            return render_template('error.html', title='Error', error=f"An error occurred: {str(e)}")
+    else:
+        return render_template('error.html', title='Error', error="You need to be an author to create a post. Author permissions may be requested.")
 
 @app.template_filter("filter_replies")
 def filter_replies(id):
@@ -405,6 +424,11 @@ def delete_post(id):
             db.session.commit()
             flash('Your post has been deleted.')
             return redirect(url_for('profile', username=current_user.username))
+        elif current_user.is_admin:
+            db.session.delete(post)       
+            db.session.commit()
+            flash('The post has been deleted.')
+            return redirect(url_for('admin_post_management'))
         else:
             error="You cannot delete the post of another user!"
             return render_template('error.html', title='Error', error=error)
@@ -579,7 +603,7 @@ def like_post(id):
 @login_required
 def delete_comment(id):
     comment = db.first_or_404(sa.select(Comment).where(Comment.id == id))
-    if comment.author == current_user:
+    if comment.author == current_user or current_user.is_admin:
         if comment.parent_id:
             url = generate_url(
                     comment.post_id, comment.parent_id, app.config['POSTS_PER_PAGE'], is_reply=False)
@@ -588,7 +612,7 @@ def delete_comment(id):
                     comment.post_id, comment.id, app.config['POSTS_PER_PAGE'], is_reply=False, delete_comment=True)
         db.session.delete(comment)       
         db.session.commit()
-        flash('Your comment has been deleted.')
+        flash('The comment has been deleted.')
         return redirect(url)
     else:
         error="You cannot delete the comment of another user!"
@@ -727,3 +751,196 @@ def notification_calls():
         'data': n.get_data(),
         'timestamp': n.timestamp
     } for n in notification_calls]
+
+
+@app.route("/admin/user_management")
+@admin_required
+def admin_user_management():
+    query = sa.select(User).where(User.id!=current_user.id).order_by(User.username)
+    users = db.session.scalars(query).all()
+    query = sa.select(User).where(User.request_status==RequestStatus.PENDING.value).order_by(User.username)
+    requests = db.session.scalars(query).all()
+    query = sa.select(Reported_User).order_by(Reported_User.timestamp.desc())
+    reports = db.session.scalars(query).all()
+    return render_template('admin_user_management.html', title='User Management', users=users, requests=requests, reports=reports)
+
+
+
+@app.route('/add_user', methods=['GET', 'POST'])
+@admin_required
+def add_user():
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        user = User(username=form.username.data, email=form.email.data)
+        user.set_password(form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        flash('A new user was created successfully!')
+        return redirect(url_for('admin_user_management'))
+    return render_template('register.html', title='Register', form=form)
+
+
+
+@app.route('/delete_user/<id>', methods=['GET', 'POST'])
+@admin_required
+def delete_user(id):
+    user = db.first_or_404(sa.select(User).where(User.id == id))
+    username = user.username
+    db.session.delete(user)       
+    db.session.commit()
+    flash(f'User {username} has been deleted.')
+    return redirect(url_for('admin_user_management'))
+
+
+
+@app.route('/update_author_status/<id>', methods=['POST'])
+@admin_required
+def update_author_status(id):
+    data = request.get_json()
+    is_author = data.get('is_author')
+    user = db.first_or_404(sa.select(User).where(User.id == id))
+    if user:
+        user.is_author = is_author
+        db.session.commit()
+        return jsonify({"success": True, "message": "is_author status updated"}), 200
+    else:
+        return jsonify({"success": False, "message": "User not found"}), 404
+
+
+@app.route('/request_author_permissions', methods=['POST'])
+@login_required
+def request_author_permissions():
+    if current_user.request_status == RequestStatus.NO_REQUEST.value or current_user.request_status == RequestStatus.REJECTED.value:
+        current_user.request_author_status()
+        return jsonify({"success": True, "message": "Request submitted successfully"})
+    else:
+        return jsonify({"success": False, "message": "Request already submitted or approved"}), 400
+
+
+@app.route('/approve_author_status/<id>', methods=['POST'])
+@login_required
+@admin_required 
+def approve_author_status(id):
+    user = db.first_or_404(sa.select(User).where(User.id == id))
+    if user and user.request_status == RequestStatus.PENDING.value:
+        user.approve_author_status()
+        return jsonify({"success": True, "message": "Request approved"})
+    return jsonify({"success": False, "message": "Request not found or already processed"}), 400
+
+
+@app.route('/reject_author_status/<id>', methods=['POST'])
+@login_required
+@admin_required
+def reject_author_status(id):
+    user = db.first_or_404(sa.select(User).where(User.id == id))
+    if user and user.request_status == RequestStatus.PENDING.value:
+        user.reject_author_status()
+        return jsonify({"success": True, "message": "Request rejected"})
+    return jsonify({"success": False, "message": "Request not found or already processed"}), 400
+
+
+
+@app.route('/report_user/<id>', methods=['GET', 'POST'])
+@login_required
+def report_user(id):
+    form = ReportForm()
+    user = db.first_or_404(sa.select(User).where(User.id == id))
+    if form.validate_on_submit():
+        report = Reported_User(reporter_id=current_user.id, reported_id=user.id, note=form.note.data)
+        db.session.add(report)
+        db.session.commit()
+        flash("Report submitted successfully.")     
+        return redirect(url_for('profile', username=user.username))
+    return render_template('report.html', title='Report User', form=form)
+
+
+@app.route('/delete_report_user/<id>', methods=['GET', 'POST'])
+@admin_required
+def delete_report_user(id):
+    report = db.first_or_404(sa.select(Reported_User).where(Reported_User.id == id))
+    db.session.delete(report)       
+    db.session.commit()
+    flash('The report has been deleted.')
+    return redirect(url_for('admin_user_management'))
+
+
+
+@app.route("/admin/post_management")
+@admin_required
+def admin_post_management():
+    query = sa.select(Post).order_by(Post.timestamp.desc())
+    posts = db.session.scalars(query).all()
+    query = sa.select(Reported_Post).order_by(Reported_Post.timestamp.desc())
+    reports = db.session.scalars(query).all()
+    query = sa.select(Reported_Comment).order_by(Reported_Comment.timestamp.desc())
+    comment_reports = db.session.scalars(query).all()
+    return render_template('admin_post_management.html', title='Post Management', posts=posts, reports=reports, comment_reports=comment_reports)
+
+
+@app.route('/report_post/<id>', methods=['GET', 'POST'])
+@login_required
+def report_post(id):
+    form = ReportForm()
+    post = db.first_or_404(sa.select(Post).where(Post.id == id))
+    if form.validate_on_submit():
+        report = Reported_Post(reporter_id=current_user.id, post_id=post.id, note=form.note.data)
+        db.session.add(report)
+        db.session.commit()
+        flash("Report submitted successfully.")     
+        return redirect(url_for('post', id=post.id))
+    return render_template('report.html', title='Report Post', form=form)
+
+
+
+@app.route('/delete_report_post/<id>', methods=['GET', 'POST'])
+@admin_required
+def delete_report_post(id):
+    report = db.first_or_404(sa.select(Reported_Post).where(Reported_Post.id == id))
+    db.session.delete(report)       
+    db.session.commit()
+    flash('The report has been deleted.')
+    return redirect(url_for('admin_post_management'))
+
+
+
+@app.route('/report_comment/<id>', methods=['GET', 'POST'])
+@login_required
+def report_comment(id):
+    form = ReportForm()
+    comment = db.first_or_404(sa.select(Comment).where(Comment.id == id))
+    if form.validate_on_submit():
+        report = Reported_Comment(reporter_id=current_user.id, comment_id=comment.id, note=form.note.data)
+        db.session.add(report)
+        db.session.commit()
+        flash("Report submitted successfully.") 
+        if comment.parent_id:
+            is_reply = True
+        else:
+            is_reply = False
+        url = generate_url(comment.post_id, comment.id, app.config['POSTS_PER_PAGE'], is_reply=is_reply)    
+        return redirect(url)
+    return render_template('report.html', title='Report Comment', form=form)
+
+
+
+@app.route('/generate_comment_url/<id>')
+def generate_comment_url(id):
+    comment = db.first_or_404(sa.select(Comment).where(Comment.id == id))
+    if comment.parent_id:
+        is_reply = True
+    else:
+        is_reply = False
+    url = generate_url(comment.post_id, comment.id, app.config['POSTS_PER_PAGE'], is_reply=is_reply)
+    return redirect(url)
+
+
+
+
+@app.route('/delete_report_comment/<id>', methods=['GET', 'POST'])
+@admin_required
+def delete_report_comment(id):
+    report = db.first_or_404(sa.select(Reported_Comment).where(Reported_Comment.id == id))
+    db.session.delete(report)       
+    db.session.commit()
+    flash('The report has been deleted.')
+    return redirect(url_for('admin_post_management'))
