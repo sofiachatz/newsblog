@@ -25,7 +25,7 @@
             {{ c.username }} <span style="color: red;">(Deleted User)</span>
           {% endif %}
           <span class="small">- {{ moment(c.timestamp).fromNow() }}</span></p>
-          {% if not current_user.is_anonymous %}
+          {% if not current_user.is_anonymous and current_user != c.author %}
             <a href="{{ url_for('report_comment', id=c.id) }}" class="link-dark link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover"><i class="bi bi-flag" style="margin-left: 1ch;"></i></a>
           {% endif %}
           {% if c.author == current_user or current_user.is_admin %}

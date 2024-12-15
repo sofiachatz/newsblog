@@ -13,6 +13,7 @@
           <th>Username</th>
           <th data-dt-order="disable">About the author</th>
           <th>Last Seen</th>
+          <th>No. of Posts</th>
           <th data-dt-order="disable">Posts</th>
         </tr>
     </thead>
@@ -35,6 +36,7 @@
                 {% endif %}
             </td>
             <td>{{ moment(user.last_seen).fromNow() }}</td>
+            <td>{{ user.posts|length }}</td>
             <td style="width: 350px; white-space: normal; word-break: break-word;">
                 {% for post in user.posts %}
                     <p><a href="{{ url_for('post', id=post.id) }}" class="link-dark link-offset-2 link-underline link-underline-opacity-0">
@@ -51,6 +53,7 @@
             <th>Username</th>
             <th>About the author</th>
             <th>Last Seen</th>
+            <th>No. of Posts</th>
             <th>Posts</th>
         </tr>
     </tfoot>

@@ -11,9 +11,11 @@
     <br>
 
     {% if liked_posts %}
+        <div class="row">
         {% for post in liked_posts %}
                 {% include '_post.html' %}
         {% endfor %}
+        </div>
         <nav aria-label="Post navigation">
             <ul class="pagination">
                 <li class="page-item{% if not prev_url %} disabled{% endif %}">
